@@ -1,0 +1,111 @@
+/* General styling for the login container */
+.login-container {
+    max-width: 500px;
+    /* Limit the width of the login form */
+    margin: 0 auto; /* Center the form */
+    padding: 20px; /* Add padding inside the container */
+    background-color: #f9f9f9; /* Light background color */
+    border: 2px solid #ddd; /* Light border for definition */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow effect */
+    font-family: Arial, sans-serif; /* Font family */
+}
+
+/* Header styling */
+.login-container h2 {
+    text-align: center; /* Center the text */
+    font-size: 24px; /* Font size for the header */
+    font-weight: 600; /* Bold weight */
+    margin-bottom: 20px; /* Space below the header */
+    color: #333; /* Dark text color */
+}
+
+/* Styling for form groups */
+.form-group {
+    margin-bottom: 15px; /* Space below each input */
+}
+
+/* Label styling */
+.form-group label {
+    display: block; /* Block display for labels */
+    font-weight: 500; /* Medium weight */
+    margin-bottom: 5px; /* Space below labels */
+    color: #333; /* Dark text color */
+}
+
+/* Input styling */
+.form-group input {
+    width: 100%; /* Full width of the container */
+    padding: 10px; /* Padding inside the input */
+    font-size: 16px; /* Font size */
+    border: 1px solid #ccc; /* Light border */
+    border-radius: 4px; /* Rounded corners */
+    outline: none; /* Remove outline */
+    transition: border-color 0.3s; /* Smooth transition for border color */
+}
+
+/* Input focus styling */
+/* .form-group input:focus { */
+    /* border-color: #007bff; Change border color on focus */
+/* } */
+
+/* Button styling */
+.btn-primary {
+    width: 100%; 
+    text-align: center;/* Full width */
+   /* Padding inside the button */
+    background-color: #007bff; /* Blue background color */
+    color: white; /* White text */
+    border: none; /* No border */
+    border-radius: 4px; /* Rounded corners */
+    /* Font size */
+    font-weight: 600; /* Bold weight */
+    cursor: pointer; /* Pointer cursor */
+}
+
+/* Button hover styling */
+
+
+/* Link styling */
+p {
+    text-align: center; /* Center align the text */
+    margin-top: 20px; /* Space above the paragraph */
+}
+
+/* Link color */
+p a {
+    color: #007bff; /* Link color */
+}
+
+/* Link hover effect */
+p a:hover {
+    text-decoration: underline; /* Underline on hover */
+}
+
+
+/* Add this to your CSS file */
+button {
+    background-color: #4caf50; /* Example: green background */
+    /* color: white; */
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+/* Custom styling for the Swal button */
+.swal-button {
+    background-color: #3085d6 !important; /* Solid background color */
+    color: white !important; /* Text color */
+    border: none !important; /* Remove border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 10px 20px; /* Adjust padding */
+    font-size: 16px; /* Adjust font size */
+}
+.swal-button:hover {
+    background-color: #1e70bf !important; /* Darker shade on hover */
+}
