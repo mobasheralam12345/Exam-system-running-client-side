@@ -16,7 +16,7 @@ const Home = () => {
         <div className="container">
             <h2 className="text-2xl font-bold">What is Online Examination System Management ?</h2>
             <br />
-            Online Examination System is a technology-driven way to simplify examination activities like defining exam
+           Hi, Examination System is a technology-driven way to simplify examination activities like defining exam
             patterns with question banks, defining exam timers, objective/subjective question sections, and conducting
             exams using a computer or mobile devices in a paperless manner.
             <br />
