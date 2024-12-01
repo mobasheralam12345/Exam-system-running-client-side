@@ -9,7 +9,7 @@ const QuestionSelector = ({ onSelect }) => {
     const handleSubjectChange = (e) => {
         setSelectedSubject(e.target.value);
     };
-
+//hlw
     const handleQuestionsChange = (e) => {
         setTotalQuestions(e.target.value);
     };
