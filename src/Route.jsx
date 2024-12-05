@@ -10,6 +10,8 @@ import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
 import SubjectWiseExam from './Pages/SubjectWiseExam/SubjectWise-Exam';
 import HscExam from '../src/Pages/HscExam/HscExam';
 import HscSubjectWiseExam from "./Pages/HscExam/HscSubjectWiseExam";
+import AdminLogin from "./Pages/Admin/AdminLogin";
+import AdminDashboard from "./Pages/AdminDashboard/AdminDashboard";
 
 const router = createBrowserRouter([
   {
@@ -51,6 +53,14 @@ const router = createBrowserRouter([
       {
         path: '/hsc/subjectwise',
         element : <HscSubjectWiseExam></HscSubjectWiseExam>
+      },
+      {
+        path : '/admin',
+        element: <AdminLogin></AdminLogin>
+      },
+      {
+        path : '/admin-dashboard',
+        element: <AdminDashboard></AdminDashboard>
       }
       
     ]

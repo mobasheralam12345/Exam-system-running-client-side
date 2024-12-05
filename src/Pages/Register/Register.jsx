@@ -54,8 +54,8 @@ const Register = () => {
 
     return (
         <div className="register-container">
-            <h2>Register</h2>
-            <form onSubmit={handleSubmit}>
+            <h2 className='text-2xl font-bold text-center mx-auto'>Registration page</h2>
+            <form className='w-1/2 mx-auto' onSubmit={handleSubmit}>
                 <div className="form-group">
                     <label htmlFor="name">Name</label>
                     <input
@@ -99,7 +99,7 @@ const Register = () => {
                 </button>
             </form>
 
-            <p>Already have an account? <a href="/login">Login</a></p>
+            <p className='text-lg'>Already have an account? <a href="/login">Login</a></p>
         </div>
     );
 };

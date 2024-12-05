@@ -7,6 +7,7 @@ const Navbar = () => {
     const navigate = useNavigate();
     const [showExamMenu, setShowExamMenu] = useState(false);
     const [showHscMenu, setShowHscMenu] = useState(false);
+    const [activeMenu, setActiveMenu] = useState(""); // Track the active menu
     const dropdownRef = useRef(null);
 
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
@@ -55,21 +56,33 @@ const Navbar = () => {
                 <ul className="flex space-x-2 relative">
                     <NavLink
                         to="/"
-                        className="hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                        className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
+                            activeMenu === "home" ? "bg-orange-700 text-white" : "hover:bg-orange-700 hover:text-white"
+                        }`}
+                        onClick={() => setActiveMenu("home")}
                     >
                         Home
                     </NavLink>
+                    
                     <NavLink
                         to="/about"
-                        className="hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                        className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
+                            activeMenu === "about" ? "bg-orange-700 text-white" : "hover:bg-orange-700 hover:text-white"
+                        }`}
+                        onClick={() => setActiveMenu("about")}
                     >
                         About
                     </NavLink>
                     {/* BCS Exam Dropdown */}
-                    <div className="relative">
+                    <div className="relative mr-4">
                         <button
-                            onClick={() => setShowExamMenu(!showExamMenu)}
-                            className="hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 flex items-center"
+                            onClick={() => {
+                                setShowExamMenu(!showExamMenu);
+                                setActiveMenu("bcsExam");
+                            }}
+                            className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 flex items-center ${
+                                activeMenu === "bcsExam" ? "bg-orange-700 text-white" : "hover:bg-orange-800 hover:text-white"
+                            }`}
                         >
                             BCS Exam
                             <span className="ml-2">▼</span>
@@ -79,7 +92,7 @@ const Navbar = () => {
                                 <li>
                                     <NavLink
                                         to="/exam"
-                                        className="block mb-2 hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                                        className="block mb-2 hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
                                         onClick={() => setShowExamMenu(false)}
                                     >
                                         All Questions Exam
@@ -88,7 +101,7 @@ const Navbar = () => {
                                 <li>
                                     <NavLink
                                         to="/subjectwise-exam"
-                                        className="block hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                                        className="block hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
                                         onClick={() => setShowExamMenu(false)}
                                     >
                                         Subject Wise Exam
@@ -100,8 +113,13 @@ const Navbar = () => {
                     {/* HSC Exam Dropdown */}
                     <div className="relative">
                         <button
-                            onClick={() => setShowHscMenu(!showHscMenu)}
-                            className="hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 flex items-center"
+                            onClick={() => {
+                                setShowHscMenu(!showHscMenu);
+                                setActiveMenu("hscExam");
+                            }}
+                            className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 flex items-center ${
+                                activeMenu === "hscExam" ? "bg-orange-700 text-white" : "hover:bg-orange-700 hover:text-white"
+                            }`}
                         >
                             HSC Exam
                             <span className="ml-2">▼</span>
@@ -111,7 +129,7 @@ const Navbar = () => {
                                 <li>
                                     <NavLink
                                         to="/hsc/all-questions"
-                                        className="block mb-2 hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                                        className="block mb-2 hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
                                         onClick={() => setShowHscMenu(false)}
                                     >
                                         All Questions Exam
@@ -120,7 +138,7 @@ const Navbar = () => {
                                 <li>
                                     <NavLink
                                         to="/hsc/subjectwise"
-                                        className="block hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                                        className="block hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
                                         onClick={() => setShowHscMenu(false)}
                                     >
                                         Subject Wise Exam
@@ -132,7 +150,10 @@ const Navbar = () => {
                     {isAuthenticated && (
                         <NavLink
                             to="/dashboard"
-                            className="hover:bg-orange-800 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
+                            className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
+                                activeMenu === "dashboard" ? "bg-orange-800 text-white" : "hover:bg-orange-800 hover:text-white"
+                            }`}
+                            onClick={() => setActiveMenu("dashboard")}
                         >
                             Dashboard
                         </NavLink>
@@ -149,7 +170,7 @@ const Navbar = () => {
                     </button>
                 ) : (
                     <Link to="/login">
-                        <button className="btn bg-blue-500 text-white rounded-md">
+                        <button className="btn bg-blue-500 text-white text-md rounded-md">
                             Login
                         </button>
                     </Link>
