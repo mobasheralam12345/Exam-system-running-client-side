@@ -209,8 +209,12 @@ const SubjectWiseQuiz = ({ subject, totalQuestions }) => {
           <p className="text-xl mb-4">
             Your Marks: {score}/{totalQuestionsCount}
           </p>
+          <p className="text-lg mb-4">Correct Answers: {score}</p>
+          <p className="text-lg mb-4">Incorrect Answers: {incorrectAnswers}</p>
+          <p className="text-lg mb-4">Skipped Answers: {skippedAnswers}</p>
+          <hr></hr>
 
-          <div className="mb-8">
+          <div className="mb-8 mt-20">
             {questionsData.map((question, questionIndex) => {
               const selected = selectedOptions[questionIndex];
               const correctAnswerKey = question.correctAnswer;

@@ -230,10 +230,14 @@ const Quiz = ({ year }) => {
           <p className="text-xl mb-4">
             Your Marks: {score}/{totalQuestions}
           </p>
+          <p className="text-lg mb-4">Correct Answers: {score}</p>
+          <p className="text-lg mb-4">Incorrect Answers: {incorrectAnswers}</p>
+          <p className="text-lg mb-4">Skipped Answers: {skippedAnswers}</p>
+          <hr></hr>
 
           {questionsData?.length > 0 ? (
             questionsData.map((subject, subjectIndex) => (
-              <div key={subjectIndex} className="mb-8">
+              <div key={subjectIndex} className="mb-8 mt-20">
                 {/* Subject Name */}
                 <h2 className="text-xl font-semibold mb-4">
                   {subject.subject_name}
