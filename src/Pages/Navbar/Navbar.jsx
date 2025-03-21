@@ -43,9 +43,9 @@ const Navbar = () => {
     }, []);
 
     return (
-        <div className="navbar flex justify-between ml-2 items-center px-10 py-5 shadow-md text-xl font-semibold">
+        <div className="navbar flex justify-between  ml-2 items-center px-10 py-5 shadow-md text-xl font-semibold">
             <div className="navbar-start">
-                <a className="text-2xl font-bold ml-2">
+                <a className="text-2xl font-bold ">
                     Online Examination System Management
                 </a>
             </div>
@@ -64,7 +64,7 @@ const Navbar = () => {
                         Home
                     </NavLink>
                     
-                    <NavLink
+                    {/* <NavLink
                         to="/about"
                         className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
                             activeMenu === "about" ? "bg-orange-700 text-white" : "hover:bg-orange-700 hover:text-white"
@@ -72,7 +72,7 @@ const Navbar = () => {
                         onClick={() => setActiveMenu("about")}
                     >
                         About
-                    </NavLink>
+                    </NavLink> */}
                     {/* BCS Exam Dropdown */}
                     <div className="relative mr-4">
                         <button

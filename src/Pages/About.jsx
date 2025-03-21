@@ -1,4 +1,4 @@
-
+``
 const About = () => {
     return (
         <div className="mt-10 text-lg">

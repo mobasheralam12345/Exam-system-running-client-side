@@ -15,7 +15,7 @@ const Home = () => {
 
   return (
     <div className="border-red-700 my-4">
-      <h2 className="text-2xl font-bold">
+      <h2 className="text-xl font-bold">
         What is Online Examination System Management ?
       </h2>
       <br />
@@ -38,6 +38,10 @@ const Home = () => {
       <div className=" border-red-700 justify-center items-center mb-8 mt-10">
         <HeroSection></HeroSection>
       </div>
+
+      <h2 className="font-bold text-2xl">Project objective:</h2>
+       Online Examination System 
+Online examination system is a non removable examination pattern of today’s life. We need more time saving and more accurate examination system as the number of applicants is increasing day by day. For all IT students and professionals, it is very important to have some basic understanding about the online examination system. On this site you will get source code with the running project. It will help you to understand the concept of the project. 
     </div>
   );
 };

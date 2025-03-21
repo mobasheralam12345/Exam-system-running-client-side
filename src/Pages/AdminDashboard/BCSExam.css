@@ -1,0 +1,91 @@
+/* Container */
+.exam-container {
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Pagination */
+  .subject-pagination {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+  }
+  
+  .subject-pagination button {
+    padding: 8px 15px;
+    border: 1px solid #007bff;
+    background-color: white;
+    cursor: pointer;
+    transition: 0.3s;
+    border-radius: 5px;
+  }
+  
+  .subject-pagination button:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .subject-pagination span {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  /* Question Form */
+  .question-form {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .question-form input,
+  .question-form select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%;
+  }
+  
+  .question-form button {
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  
+  .question-form button:hover {
+    background-color: #218838;
+  }
+  
+  /* Questions */
+  .questions-container {
+    text-align: left;
+    margin-top: 20px;
+  }
+  
+  .question-card {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+  }
+  
+  .question-card h3 {
+    margin-bottom: 5px;
+  }
+  
+  .options p {
+    margin: 5px 0;
+    padding: 5px;
+  }
+  
+  .correct {
+    font-weight: bold;
+    color: green;
+  }
+  

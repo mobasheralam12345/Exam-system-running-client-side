@@ -11,7 +11,7 @@ import SubjectWiseExam from './Pages/SubjectWiseExam/SubjectWise-Exam';
 import HscExam from '../src/Pages/HscExam/HscExam';
 import HscSubjectWiseExam from "./Pages/HscExam/HscSubjectWiseExam";
 import AdminLogin from "./Pages/Admin/AdminLogin";
-import AdminDashboard from "./Pages/AdminDashboard/AdminDashboard";
+import AdminDashboard from "./Pages/AdminDashboard/BCSExamAdmin";
 
 const router = createBrowserRouter([
   {
