@@ -14,6 +14,10 @@ import AdminLogin from "./Pages/Admin/AdminLogin";
 import AddBCS from "./Pages/AdminDashboard/BCSExamAdmin";
 import AddHSC from "./Pages/AdminDashboard/HSCExam";
 import AdminHomePage from "./Pages/AdminDashboard/AdminHomePage";
+import AddBCSOthers from "./Pages/AdminDashboard/bcsOthers";
+import BCSOthersExam from "./Pages/BCSOthers/BCSOthersExam";
+import AddHSCOthers from "./Pages/AdminDashboard/hscOthers";
+import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
 
 const router = createBrowserRouter([
   {
@@ -79,6 +83,22 @@ const router = createBrowserRouter([
       {
         path: "/admin-dashboard",
         element: <AdminHomePage></AdminHomePage>,
+      },
+      {
+        path: "/admin/BCS/others",
+        element: <AddBCSOthers></AddBCSOthers>,
+      },
+      {
+        path: "/BCSOthersExam",
+        element: <BCSOthersExam></BCSOthersExam>,
+      },
+      {
+        path: "/admin/HSC/others",
+        element: <AddHSCOthers></AddHSCOthers>,
+      },
+      {
+        path: "/HSCOthersExam",
+        element: <HSCOthersExam></HSCOthersExam>,
       },
     ],
   },

@@ -54,7 +54,7 @@ const QuestionSelector = ({ onSelect }) => {
           Choose a Group:
         </label>
         <select
-          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-white"
+          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={selectedGroup}
           onChange={(e) => setSelectedGroup(e.target.value)}
         >
@@ -74,7 +74,7 @@ const QuestionSelector = ({ onSelect }) => {
           Choose a Board:
         </label>
         <select
-          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-white"
+          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={selectedBoard}
           onChange={(e) => setSelectedBoard(e.target.value)}
         >
@@ -95,7 +95,7 @@ const QuestionSelector = ({ onSelect }) => {
         </label>
         <input
           type="number"
-          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-white"
+          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={examYear}
           onChange={(e) => setExamYear(e.target.value)}
           placeholder="Enter Year (e.g., 2023)"
