@@ -228,26 +228,34 @@ const HSCExamAdmin = () => {
       </div>
 
       {/* Subject Pagination */}
-      <div className="subject-pagination">
-        <button
-          onClick={() =>
-            setSelectedSubjectIndex(Math.max(selectedSubjectIndex - 1, 0))
-          }
-          disabled={selectedSubjectIndex === 0}
-        >
-          ⬅ Previous
-        </button>
-        <span>{selectedSubject.name}</span>
-        <button
-          onClick={() =>
-            setSelectedSubjectIndex(
-              Math.min(selectedSubjectIndex + 1, groupSubjects.length - 1)
-            )
-          }
-          disabled={selectedSubjectIndex === groupSubjects.length - 1}
-        >
-          Next ➡
-        </button>
+      <div className="subject-pagination flex justify-between items-center w-full">
+        <div>
+          <button
+            onClick={() =>
+              setSelectedSubjectIndex(Math.max(selectedSubjectIndex - 1, 0))
+            }
+            disabled={selectedSubjectIndex === 0}
+          >
+            ⬅ Previous
+          </button>
+        </div>
+
+        <div className="flex-grow text-center">
+          <span>{selectedSubject.name}</span>
+        </div>
+
+        <div>
+          <button
+            onClick={() =>
+              setSelectedSubjectIndex(
+                Math.min(selectedSubjectIndex + 1, groupSubjects.length - 1)
+              )
+            }
+            disabled={selectedSubjectIndex === groupSubjects.length - 1}
+          >
+            Next ➡
+          </button>
+        </div>
       </div>
 
       {/* Question Form */}
