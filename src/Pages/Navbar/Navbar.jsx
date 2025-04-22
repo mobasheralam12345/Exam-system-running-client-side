@@ -120,7 +120,7 @@ const Navbar = () => {
                       setShowExamMenu(false);
                     }}
                   >
-                    BCS Others
+                     Others
                   </NavLink>
                 </li>
               </ul>
@@ -171,7 +171,7 @@ const Navbar = () => {
                       setShowHscMenu(false);
                     }}
                   >
-                    HSC Others
+                    Others
                   </NavLink>
                 </li>
               </ul>

@@ -13,9 +13,10 @@ const subjects = [
 ];
 
 const BCSExamAdmin = () => {
+  const [step, setStep] = useState(1); // 1 = Select Year, 2 = Question Form
+  const [bcsYear, setBcsYear] = useState("");
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
   const [questions, setQuestions] = useState({});
-  const [bcsYear, setBcsYear] = useState("");
 
   const [newQuestion, setNewQuestion] = useState({
     questionText: "",
@@ -41,9 +42,7 @@ const BCSExamAdmin = () => {
     const subjectQuestions = questions[selectedSubject.name] || [];
 
     if (subjectQuestions.length >= selectedSubject.limit) {
-      alert(
-        `You can only add ${selectedSubject.limit} questions for ${selectedSubject.name}.`
-      );
+      alert(`You can only add ${selectedSubject.limit} questions for ${selectedSubject.name}.`);
       return;
     }
 
@@ -63,10 +62,10 @@ const BCSExamAdmin = () => {
   const isSubmitVisible = subjects.every(
     (subject) => (questions[subject.name] || []).length >= subject.limit
   );
+
   const handleSubmit = async () => {
-    // const bcsYear = localStorage.getItem("bcsYear");
     if (!bcsYear) {
-      alert("BCS Year is missing. Please set the BCS year in settings.");
+      alert("BCS Year is missing.");
       return;
     }
 
@@ -92,67 +91,67 @@ const BCSExamAdmin = () => {
     }
   };
 
+  // UI for step 1: select year
+  if (step === 1) {
+    return (
+      <div className="flex flex-col items-center mt-32">
+        <h1 className="text-4xl font-bold mb-4">Select BCS Year</h1>
+        <select
+          className="border text-xl px-4 py-2 rounded"
+          value={bcsYear}
+          onChange={(e) => setBcsYear(e.target.value)}
+        >
+          <option value="" className="text-xl">Select a year</option>
+          {[...Array(46)].map((_, index) => (
+            <option key={index} value={index + 1}>
+              {index + 1}th BCS
+            </option>
+          ))}
+        </select>
+        <button
+          className="px-6 py-2 w-96 font-bold text-xl mt-8 bg-blue-500 text-white rounded"
+          onClick={() => {
+            if (bcsYear) setStep(2);
+            else alert("Please select a year.");
+          }}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  }
+
+  // Step 2: Add questions
   return (
     <div className="exam-container">
       <h1>BCS Exam - Admin Panel</h1>
-      {/* Year Dropdown */}
-      <div className="flex justify-center mt-4 mb-6">
-        <div className="flex items-center space-x-3">
-          <label
-            htmlFor="bcsYearSelect"
-            className="text-lg font-semibold text-gray-800"
-          >
-            Select Year:
-          </label>
-          <select
-            id="bcsYearSelect"
-            value={bcsYear}
-            onChange={(e) => setBcsYear(parseInt(e.target.value))}
-            className="w-48 px-4 py-2 text-base border-2 border-blue-500 rounded-lg bg-blue-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-600 transition-all duration-200"
-          >
-            <option value="" disabled>
-              Select a year
-            </option>
-            {[...Array(46)].map((_, index) => (
-              <option key={index} value={index + 1}>
-                {index + 1}th BCS
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="text-center mb-4 font-semibold text-blue-700">
+        Year: {bcsYear}th BCS
       </div>
 
-      {/* Subject Pagination */}
+      {/* Subject Navigation */}
       <div className="subject-pagination flex justify-between items-center w-full">
-        <div>
-          <button
-            onClick={() =>
-              setSelectedSubjectIndex(Math.max(selectedSubjectIndex - 1, 0))
-            }
-            disabled={selectedSubjectIndex === 0}
-            className="text-blue-600 font-medium disabled:text-gray-400"
-          >
-            ⬅ Previous
-          </button>
-        </div>
+        <button
+          onClick={() => setSelectedSubjectIndex(Math.max(selectedSubjectIndex - 1, 0))}
+          disabled={selectedSubjectIndex === 0}
+          className="text-blue-600 font-medium disabled:text-gray-400"
+        >
+          ⬅ Previous
+        </button>
 
         <div className="flex-grow text-center">
           <span className="text-lg font-semibold">{selectedSubject.name}</span>
         </div>
 
-        <div>
-          <button
-            onClick={() =>
-              setSelectedSubjectIndex(
-                Math.min(selectedSubjectIndex + 1, subjects.length - 1)
-              )
-            }
-            disabled={selectedSubjectIndex === subjects.length - 1}
-            className="text-blue-600 font-medium disabled:text-gray-400"
-          >
-            Next ➡
-          </button>
-        </div>
+        <button
+          onClick={() =>
+            setSelectedSubjectIndex(Math.min(selectedSubjectIndex + 1, subjects.length - 1))
+          }
+          disabled={selectedSubjectIndex === subjects.length - 1}
+          className="text-blue-600 font-medium disabled:text-gray-400"
+        >
+          Next ➡
+        </button>
       </div>
 
       {/* Question Form */}
@@ -190,15 +189,14 @@ const BCSExamAdmin = () => {
         <button
           onClick={addQuestion}
           disabled={
-            (questions[selectedSubject.name] || []).length >=
-            selectedSubject.limit
+            (questions[selectedSubject.name] || []).length >= selectedSubject.limit
           }
         >
           Add Question
         </button>
       </div>
 
-      {/* Questions List */}
+      {/* Questions Preview */}
       <div className="questions-container">
         <h2>{selectedSubject.name} Questions</h2>
         {questions[selectedSubject.name]?.map((q, index) => (
@@ -208,10 +206,7 @@ const BCSExamAdmin = () => {
             </h3>
             <div className="options">
               {Object.entries(q.options).map(([key, option]) => (
-                <p
-                  key={key}
-                  className={q.correctAnswer === key ? "correct" : ""}
-                >
+                <p key={key} className={q.correctAnswer === key ? "correct" : ""}>
                   {key}. {option}
                 </p>
               ))}
