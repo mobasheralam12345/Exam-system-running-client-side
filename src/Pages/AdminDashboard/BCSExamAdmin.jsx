@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import "./BCSExam.css";
 
 const subjects = [
@@ -13,10 +15,11 @@ const subjects = [
 ];
 
 const BCSExamAdmin = () => {
-  const [step, setStep] = useState(1); // 1 = Select Year, 2 = Question Form
+  const [step, setStep] = useState(1);
   const [bcsYear, setBcsYear] = useState("");
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
   const [questions, setQuestions] = useState({});
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const [newQuestion, setNewQuestion] = useState({
     questionText: "",
@@ -38,18 +41,29 @@ const BCSExamAdmin = () => {
     }
   };
 
-  const addQuestion = () => {
+  const addOrUpdateQuestion = () => {
     const subjectQuestions = questions[selectedSubject.name] || [];
 
-    if (subjectQuestions.length >= selectedSubject.limit) {
-      alert(`You can only add ${selectedSubject.limit} questions for ${selectedSubject.name}.`);
-      return;
-    }
+    if (editingIndex !== null) {
+      // Editing
+      const updated = [...subjectQuestions];
+      updated[editingIndex] = newQuestion;
+      setQuestions({ ...questions, [selectedSubject.name]: updated });
+      setEditingIndex(null);
+    } else {
+      // Adding
+      if (subjectQuestions.length >= selectedSubject.limit) {
+        alert(
+          `Only ${selectedSubject.limit} questions allowed for ${selectedSubject.name}.`
+        );
+        return;
+      }
 
-    setQuestions({
-      ...questions,
-      [selectedSubject.name]: [...subjectQuestions, newQuestion],
-    });
+      setQuestions({
+        ...questions,
+        [selectedSubject.name]: [...subjectQuestions, newQuestion],
+      });
+    }
 
     setNewQuestion({
       questionText: "",
@@ -57,6 +71,58 @@ const BCSExamAdmin = () => {
       correctAnswer: "A",
       explanation: "",
     });
+  };
+
+  const handleEdit = (index) => {
+    const q = questions[selectedSubject.name][index];
+    setNewQuestion(q);
+    setEditingIndex(index);
+  };
+
+  const handleDelete = (index) => {
+    const updated = [...questions[selectedSubject.name]];
+    updated.splice(index, 1);
+    setQuestions({ ...questions, [selectedSubject.name]: updated });
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`${bcsYear}th BCS Questions`, 14, 20);
+
+    let y = 30;
+
+    subjects.forEach((subject) => {
+      const subjectQuestions = questions[subject.name] || [];
+      if (subjectQuestions.length > 0) {
+        doc.setFontSize(14);
+        doc.text(subject.name, 14, y);
+        y += 6;
+
+        subjectQuestions.forEach((q, index) => {
+          doc.setFontSize(12);
+          doc.text(`${index + 1}. ${q.questionText}`, 14, y);
+          y += 6;
+
+          Object.entries(q.options).forEach(([key, val]) => {
+            doc.text(`${key}. ${val}`, 18, y);
+            y += 5;
+          });
+
+          doc.text(`Correct: ${q.correctAnswer}`, 18, y);
+          y += 5;
+          doc.text(`Explanation: ${q.explanation}`, 18, y);
+          y += 10;
+
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+        });
+      }
+    });
+
+    doc.save(`${bcsYear}_BCS_Questions.pdf`);
   };
 
   const isSubmitVisible = subjects.every(
@@ -91,17 +157,16 @@ const BCSExamAdmin = () => {
     }
   };
 
-  // UI for step 1: select year
   if (step === 1) {
     return (
-      <div className="flex flex-col items-center mt-32">
+      <div className="flex flex-col items-center mt-32 z-1">
         <h1 className="text-4xl font-bold mb-4">Select BCS Year</h1>
         <select
           className="border text-xl px-4 py-2 rounded"
           value={bcsYear}
           onChange={(e) => setBcsYear(e.target.value)}
         >
-          <option value="" className="text-xl">Select a year</option>
+          <option value="">Select a year</option>
           {[...Array(46)].map((_, index) => (
             <option key={index} value={index + 1}>
               {index + 1}th BCS
@@ -110,10 +175,9 @@ const BCSExamAdmin = () => {
         </select>
         <button
           className="px-6 py-2 w-96 font-bold text-xl mt-8 bg-blue-500 text-white rounded"
-          onClick={() => {
-            if (bcsYear) setStep(2);
-            else alert("Please select a year.");
-          }}
+          onClick={() =>
+            bcsYear ? setStep(2) : alert("Please select a year.")
+          }
         >
           Continue
         </button>
@@ -121,7 +185,6 @@ const BCSExamAdmin = () => {
     );
   }
 
-  // Step 2: Add questions
   return (
     <div className="exam-container">
       <h1>BCS Exam - Admin Panel</h1>
@@ -129,10 +192,11 @@ const BCSExamAdmin = () => {
         Year: {bcsYear}th BCS
       </div>
 
-      {/* Subject Navigation */}
       <div className="subject-pagination flex justify-between items-center w-full">
         <button
-          onClick={() => setSelectedSubjectIndex(Math.max(selectedSubjectIndex - 1, 0))}
+          onClick={() =>
+            setSelectedSubjectIndex(Math.max(selectedSubjectIndex - 1, 0))
+          }
           disabled={selectedSubjectIndex === 0}
           className="text-blue-600 font-medium disabled:text-gray-400"
         >
@@ -145,7 +209,9 @@ const BCSExamAdmin = () => {
 
         <button
           onClick={() =>
-            setSelectedSubjectIndex(Math.min(selectedSubjectIndex + 1, subjects.length - 1))
+            setSelectedSubjectIndex(
+              Math.min(selectedSubjectIndex + 1, subjects.length - 1)
+            )
           }
           disabled={selectedSubjectIndex === subjects.length - 1}
           className="text-blue-600 font-medium disabled:text-gray-400"
@@ -154,7 +220,6 @@ const BCSExamAdmin = () => {
         </button>
       </div>
 
-      {/* Question Form */}
       <div className="question-form">
         <input
           type="text"
@@ -186,43 +251,70 @@ const BCSExamAdmin = () => {
           value={newQuestion.explanation}
           onChange={(e) => handleInputChange(e, "explanation")}
         />
-        <button
-          onClick={addQuestion}
-          disabled={
-            (questions[selectedSubject.name] || []).length >= selectedSubject.limit
-          }
-        >
-          Add Question
+        <button onClick={addOrUpdateQuestion}>
+          {editingIndex !== null ? "Update Question" : "Add Question"}
         </button>
       </div>
 
-      {/* Questions Preview */}
-      <div className="questions-container">
+      <div className="questions-container min-h-screen">
         <h2>{selectedSubject.name} Questions</h2>
         {questions[selectedSubject.name]?.map((q, index) => (
-          <div key={index} className="question-card">
+          <div
+            key={index}
+            className="question-card mb-4 p-4 border rounded shadow"
+          >
             <h3>
               {index + 1}. {q.questionText}
             </h3>
             <div className="options">
               {Object.entries(q.options).map(([key, option]) => (
-                <p key={key} className={q.correctAnswer === key ? "correct" : ""}>
+                <p
+                  key={key}
+                  className={
+                    q.correctAnswer === key
+                      ? "font-semibold text-green-600"
+                      : ""
+                  }
+                >
                   {key}. {option}
                 </p>
               ))}
             </div>
-            <p>
+            <p className="text-sm text-gray-600 mt-2">
               <strong>Explanation:</strong> {q.explanation}
             </p>
+            <div className="mt-2 flex gap-4">
+              <button
+                className="text-blue-600"
+                onClick={() => handleEdit(index)}
+              >
+                Edit
+              </button>
+              <button
+                className="text-red-500"
+                onClick={() => handleDelete(index)}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
-
-      {/* Submit Button */}
       {isSubmitVisible && (
-        <button className="submit-button" onClick={handleSubmit}>
-          Submit All Questions
-        </button>
+        <div className="flex flex-col md:flex-row gap-4 mt-8 justify-center">
+          <button
+            className="submit-button bg-blue-600 text-white px-6 py-2 rounded font-semibold"
+            onClick={handleSubmit}
+          >
+            Submit All Questions
+          </button>
+          <button
+            className="bg-green-600 text-white px-6 py-2 rounded font-semibold"
+            onClick={handleExportPDF}
+          >
+            Export as PDF
+          </button>
+        </div>
       )}
     </div>
   );

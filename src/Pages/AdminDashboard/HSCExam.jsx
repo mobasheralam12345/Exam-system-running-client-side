@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import jsPDF from "jspdf";
 import "./HSCExam.css";
 
 const groups = {
@@ -81,26 +82,91 @@ const HSCExamAdmin = () => {
     }
   };
 
-  const addQuestion = () => {
+  const addOrUpdateQuestion = () => {
     const subjectQuestions = questions[selectedSubject.name] || [];
-    if (subjectQuestions.length >= selectedSubject.limit) {
+
+    if (newQuestion.questionText === "") {
+      alert("Please fill out the question.");
+      return;
+    }
+
+    if (
+      subjectQuestions.length >= selectedSubject.limit &&
+      newQuestion.id === undefined
+    ) {
       alert(
         `You can only add ${selectedSubject.limit} questions for ${selectedSubject.name}.`
       );
       return;
     }
 
-    setQuestions({
-      ...questions,
-      [selectedSubject.name]: [...subjectQuestions, newQuestion],
-    });
+    if (newQuestion.id !== undefined) {
+      // If we are updating, find the question and update it
+      const updatedQuestions = subjectQuestions.map((q, index) =>
+        index === newQuestion.id ? { ...q, ...newQuestion } : q
+      );
+      setQuestions({
+        ...questions,
+        [selectedSubject.name]: updatedQuestions,
+      });
+      resetNewQuestion(); // Reset form after updating
+    } else {
+      // If we are adding a new question
+      setQuestions({
+        ...questions,
+        [selectedSubject.name]: [...subjectQuestions, newQuestion],
+      });
+      resetNewQuestion(); // Reset form after adding
+    }
+  };
 
+  const resetNewQuestion = () => {
     setNewQuestion({
       questionText: "",
       options: { A: "", B: "", C: "", D: "" },
       correctAnswer: "A",
       explanation: "",
     });
+  };
+
+  const editQuestion = (index) => {
+    const questionToEdit = questions[selectedSubject.name][index];
+    setNewQuestion({
+      ...questionToEdit,
+      id: index, // Add the index as a reference to update the question
+    });
+  };
+
+  const deleteQuestion = (index) => {
+    const updated = [...(questions[selectedSubject.name] || [])];
+    updated.splice(index, 1);
+    setQuestions({
+      ...questions,
+      [selectedSubject.name]: updated,
+    });
+  };
+
+  const exportAsPDF = () => {
+    const doc = new jsPDF();
+    let y = 10;
+
+    groupSubjects.forEach((subject) => {
+      doc.text(`${subject.name} Questions:`, 10, y);
+      y += 6;
+      (questions[subject.name] || []).forEach((q, idx) => {
+        doc.text(`${idx + 1}. ${q.questionText}`, 10, y);
+        y += 6;
+        Object.entries(q.options).forEach(([key, value]) => {
+          doc.text(`${key}. ${value}`, 15, y);
+          y += 6;
+        });
+        doc.text(`Explanation: ${q.explanation}`, 15, y);
+        y += 10;
+      });
+      y += 6;
+    });
+
+    doc.save(`${selectedGroup}_${selectedBoard}_${selectedYear}.pdf`);
   };
 
   const handleSubmit = async () => {
@@ -123,7 +189,7 @@ const HSCExamAdmin = () => {
       if (response.ok) {
         alert(data.message);
         setQuestions({});
-        setStep(1); // Go back to selection screen
+        setStep(1);
       } else {
         alert("Failed to submit questions.");
       }
@@ -137,12 +203,7 @@ const HSCExamAdmin = () => {
   );
 
   useEffect(() => {
-    setNewQuestion({
-      questionText: "",
-      options: { A: "", B: "", C: "", D: "" },
-      correctAnswer: "A",
-      explanation: "",
-    });
+    resetNewQuestion();
     setSelectedSubjectIndex(0);
     setQuestions({});
   }, [selectedGroup]);
@@ -151,10 +212,9 @@ const HSCExamAdmin = () => {
     <div className="exam-container">
       <h1 className="text-2xl font-bold">HSC Exam - Admin Panel</h1>
 
-      {/* STEP 1: Selection Page */}
       {step === 1 && (
         <div className="selection-panel text-xl font-bold">
-          <div className="mt-6 ">
+          <div className="mt-6 p-1">
             <label>Group : </label>
             <select
               value={selectedGroup}
@@ -168,7 +228,7 @@ const HSCExamAdmin = () => {
               <option value="Humanities">Humanities</option>
             </select>
           </div>
-          <div className="mt-6">
+          <div className="mt-6 p-1">
             <label>Board : </label>
             <select
               value={selectedBoard}
@@ -177,29 +237,35 @@ const HSCExamAdmin = () => {
               <option value="" disabled>
                 Select Board
               </option>
-              <option value="Dhaka">Dhaka</option>
-              <option value="Chittagong">Chittagong</option>
-              <option value="Rajshahi">Rajshahi</option>
-              <option value="Khulna">Khulna</option>
-              <option value="Barisal">Barisal</option>
-              <option value="Sylhet">Sylhet</option>
-              <option value="Comilla">Comilla</option>
-              <option value="Jessore">Jessore</option>
-              <option value="Mymensingh">Mymensingh</option>
-              <option value="Dinajpur">Dinajpur</option>
+              {[
+                "Dhaka",
+             
+                "Rajshahi",
+                "Khulna",
+                "Barisal",
+                "Sylhet",
+                "Comilla",
+                "Jessore",
+                "Mymensingh",
+                "Dinajpur",
+              ].map((board) => (
+                <option key={board} value={board}>
+                  {board}
+                </option>
+              ))}
             </select>
           </div>
           <div className="mt-6">
-            <label>Year : </label>
+            <label htmlFor="year">Year : </label>
             <select
-              className="block w-full mt-1 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              id="year"
+              className="w-[200px] p-1 border rounded-md shadow-sm"
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              required
             >
               <option value="">Select Exam Year</option>
-              {Array.from({ length: 2024 - 2010 + 1 }, (_, i) => {
-                const year = 2024 - i;
+              {[...Array(2024 - 2010 + 1)].map((_, index) => {
+                const year = 2024 - index;
                 return (
                   <option key={year} value={year}>
                     {year}
@@ -223,19 +289,16 @@ const HSCExamAdmin = () => {
         </div>
       )}
 
-      {/* STEP 2: Question Creation Page */}
       {step === 2 && (
         <>
-          {/* Selected Info Summary */}
           <div className="selected-info-summary text-center mb-4">
             <h2>
-              Group: <span className="font-semibold">{selectedGroup}</span> |{" "}
-              Board: <span className="font-semibold">{selectedBoard}</span> |{" "}
+              Group: <span className="font-semibold">{selectedGroup}</span> |
+              Board: <span className="font-semibold">{selectedBoard}</span> |
               Year: <span className="font-semibold">{selectedYear}</span>
             </h2>
           </div>
 
-          {/* Subject Pagination */}
           <div className="subject-pagination flex justify-between items-center w-full">
             <button
               onClick={() =>
@@ -260,7 +323,6 @@ const HSCExamAdmin = () => {
             </button>
           </div>
 
-          {/* Question Form */}
           <div className="question-form">
             <input
               type="text"
@@ -292,13 +354,16 @@ const HSCExamAdmin = () => {
               value={newQuestion.explanation}
               onChange={(e) => handleInputChange(e, "explanation")}
             />
-            <button onClick={addQuestion}>Add Question</button>
+            <button onClick={addOrUpdateQuestion}>
+              {newQuestion.id !== undefined
+                ? "Update Question"
+                : "Add Question"}
+            </button>
           </div>
 
-          {/* Questions List */}
           <div className="questions-container">
             <h2>{selectedSubject.name} Questions</h2>
-            {questions[selectedSubject.name]?.map((q, index) => (
+            {(questions[selectedSubject.name] || []).map((q, index) => (
               <div key={index} className="question-card">
                 <h3>
                   {index + 1}. {q.questionText}
@@ -316,12 +381,21 @@ const HSCExamAdmin = () => {
                 <p>
                   <strong>Explanation:</strong> {q.explanation}
                 </p>
+                <button onClick={() => editQuestion(index)}>Edit</button>
+                <button onClick={() => deleteQuestion(index)}>Delete</button>
               </div>
             ))}
           </div>
 
           {isSubmitVisible && (
-            <button onClick={handleSubmit}>Submit All Questions</button>
+            <>
+              <button className="submit-btn" onClick={exportAsPDF}>
+                Export to PDF
+              </button>
+              <button className="submit-btn" onClick={handleSubmit}>
+                Submit Questions
+              </button>
+            </>
           )}
         </>
       )}
