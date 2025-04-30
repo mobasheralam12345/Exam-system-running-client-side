@@ -46,7 +46,7 @@ const HscSubjectWiseExam = ({ onSelect }) => {
         </label>
         <select
           id="subject"
-          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-white"
+          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-black"
           value={selectedSubject}
           onChange={handleSubjectChange}
         >
