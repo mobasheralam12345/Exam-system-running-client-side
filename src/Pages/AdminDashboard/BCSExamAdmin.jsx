@@ -4,14 +4,14 @@ import "jspdf-autotable";
 import "./BCSExam.css";
 
 const subjects = [
-  { name: "Bangla", limit: 1 },
-  { name: "English", limit: 1 },
-  { name: "Math", limit: 1 },
-  { name: "GK", limit: 1 },
-  { name: "বাংলাদেশ বিষয়াবলী", limit: 1 },
-  { name: "বিশ্ব বিষয়াবলী", limit: 1 },
-  { name: "মানসিক দক্ষতা", limit: 1 },
-  { name: "ICT", limit: 1 },
+  { name: "Bangla", limit: 4 },
+  { name: "English", limit: 4 },
+  { name: "Math", limit: 4 },
+  { name: "GK", limit: 4 },
+  { name: "বাংলাদেশ বিষয়াবলী", limit: 4 },
+  { name: "বিশ্ব বিষয়াবলী", limit: 4 },
+  { name: "মানসিক দক্ষতা", limit: 4 },
+  { name: "ICT", limit: 4 },
 ];
 
 const BCSExamAdmin = () => {
@@ -300,22 +300,23 @@ const BCSExamAdmin = () => {
           </div>
         ))}
       </div>
-      {isSubmitVisible && (
-        <div className="flex flex-col md:flex-row gap-4 mt-8 justify-center">
-          <button
-            className="submit-button bg-blue-600 text-white px-6 py-2 rounded font-semibold"
-            onClick={handleSubmit}
-          >
-            Submit All Questions
-          </button>
-          <button
-            className="bg-green-600 text-white px-6 py-2 rounded font-semibold"
-            onClick={handleExportPDF}
-          >
-            Export as PDF
-          </button>
-        </div>
-      )}
+      {selectedSubjectIndex === subjects.length - 1 && isSubmitVisible && (
+  <div className="flex flex-col md:flex-row gap-4 mt-8 justify-center">
+    <button
+      className="submit-button bg-blue-600 text-white px-6 py-2 rounded font-semibold"
+      onClick={handleSubmit}
+    >
+      Submit All Questions
+    </button>
+    <button
+      className="bg-green-600 text-white px-6 py-2 rounded font-semibold"
+      onClick={handleExportPDF}
+    >
+      Export as PDF
+    </button>
+  </div>
+)}
+
     </div>
   );
 };

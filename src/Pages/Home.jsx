@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import HeroSection from "./Navbar/HeroSection";
+import HeroSection1 from "./Navbar/HeroSection1";
+import HeroSection2 from "./Navbar/HeroSection2";
 
 const Home = () => {
   // Get the user's name from localStorage, or set it to null if not available
@@ -34,14 +35,22 @@ const Home = () => {
       <br />
       It can simplify overall examination management and result generation
       activity.
-      <div></div>
-      <div className=" border-red-700 justify-center items-center mb-8 mt-10">
-        <HeroSection></HeroSection>
+      <div>
+        <h2 className="font-bold text-2xl mb-4 mt-4">Project objective:</h2>
+        Online Examination System Online examination system is a non removable
+        examination pattern of today’s life. We need more time saving and more
+        accurate examination system as the number of applicants is increasing
+        day by day. For all IT students and professionals, it is very important
+        to have some basic understanding about the online examination system. On
+        this site you will get source code with the running project. It will
+        help you to understand the concept of the project.
       </div>
-
-      <h2 className="font-bold text-2xl">Project objective:</h2>
-       Online Examination System 
-Online examination system is a non removable examination pattern of today’s life. We need more time saving and more accurate examination system as the number of applicants is increasing day by day. For all IT students and professionals, it is very important to have some basic understanding about the online examination system. On this site you will get source code with the running project. It will help you to understand the concept of the project. 
+      <div className=" border-red-700 justify-center items-center mb-8 mt-10">
+        <HeroSection1></HeroSection1>
+      </div>
+      {/* <div className=" border-red-700 justify-center items-center mb-8 mt-10">
+        <HeroSection2></HeroSection2>
+      </div> */}
     </div>
   );
 };

@@ -239,7 +239,7 @@ const HSCExamAdmin = () => {
               </option>
               {[
                 "Dhaka",
-             
+                "Chittagong",
                 "Rajshahi",
                 "Khulna",
                 "Barisal",

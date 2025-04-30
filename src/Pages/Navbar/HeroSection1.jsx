@@ -1,7 +1,7 @@
 import React from "react";
 
-const HeroSection = () => {
-    const backgroundImage = "../../../public/exam.jpg"; // Replace with your image URL
+const HeroSection1= () => {
+    const backgroundImage = "../../../public/exam-1.jpg"; // Replace with your image URL
 
     const heroStyle = {
         backgroundImage: `url(${backgroundImage})`,
@@ -60,4 +60,4 @@ const HeroSection = () => {
     );
 };
 
-export default HeroSection;
+export default HeroSection1;
