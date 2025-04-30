@@ -91,17 +91,23 @@ const QuestionSelector = ({ onSelect }) => {
 
       <div className="mt-4">
         <label className="text-xl font-semibold text-gray-700">
-          Enter Exam Year:
+          Select Exam Year:
         </label>
-        <input
-          type="number"
+        <select
           className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={examYear}
           onChange={(e) => setExamYear(e.target.value)}
-          placeholder="Enter Year (e.g., 2023)"
-        />
+        >
+          <option value="">Select Year</option>
+          {Array.from({ length: 2025 - 2010 + 1 }, (_, i) => 2025 - i).map(
+            (year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            )
+          )}
+        </select>
       </div>
-
       <div className="mt-10 flex justify-center">
         <button
           className="bg-green-500 border mx-auto w-full border-green-500 text-white px-4 py-2 text-lg rounded-lg transition-colors hover:bg-green-600"
