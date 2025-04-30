@@ -186,7 +186,7 @@ const BCSExamAdmin = () => {
   }
 
   return (
-    <div className="exam-container">
+    <div className="exam-containerr">
       <h1>BCS Exam - Admin Panel</h1>
       <div className="text-center mb-4 font-semibold text-blue-700">
         Year: {bcsYear}th BCS
@@ -301,22 +301,21 @@ const BCSExamAdmin = () => {
         ))}
       </div>
       {selectedSubjectIndex === subjects.length - 1 && isSubmitVisible && (
-  <div className="flex flex-col md:flex-row gap-4 mt-8 justify-center">
-    <button
-      className="submit-button bg-blue-600 text-white px-6 py-2 rounded font-semibold"
-      onClick={handleSubmit}
-    >
-      Submit All Questions
-    </button>
-    <button
-      className="bg-green-600 text-white px-6 py-2 rounded font-semibold"
-      onClick={handleExportPDF}
-    >
-      Export as PDF
-    </button>
-  </div>
-)}
-
+        <div className="flex flex-col md:flex-row gap-4 mt-8 justify-center">
+          <button
+            className="submit-button bg-blue-600 text-white px-6 py-2 rounded font-semibold"
+            onClick={handleSubmit}
+          >
+            Submit All Questions
+          </button>
+          <button
+            className="bg-green-600 text-white px-6 py-2 rounded font-semibold"
+            onClick={handleExportPDF}
+          >
+            Export as PDF
+          </button>
+        </div>
+      )}
     </div>
   );
 };

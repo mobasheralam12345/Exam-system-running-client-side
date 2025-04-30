@@ -381,8 +381,20 @@ const HSCExamAdmin = () => {
                 <p>
                   <strong>Explanation:</strong> {q.explanation}
                 </p>
-                <button onClick={() => editQuestion(index)}>Edit</button>
-                <button onClick={() => deleteQuestion(index)}>Delete</button>
+                <div className="mt-2 flex gap-4">
+                  <button
+                    className="text-blue-600"
+                    onClick={() => editQuestion(index)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="text-red-500"
+                    onClick={() => deleteQuestion(index)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>

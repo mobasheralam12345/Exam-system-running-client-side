@@ -1,7 +1,6 @@
 /* Container */
 .exam-container {
-  max-width: 1600px;
-  max-height: 100vh;
+  max-width: 800px;
   margin: auto;
   padding: 20px;
   text-align: center;
