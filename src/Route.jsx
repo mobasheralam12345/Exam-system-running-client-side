@@ -18,6 +18,7 @@ import AddBCSOthers from "./Pages/AdminDashboard/bcsOthers";
 import BCSOthersExam from "./Pages/BCSOthers/BCSOthersExam";
 import AddHSCOthers from "./Pages/AdminDashboard/hscOthers";
 import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
+import LiveExamsPage from "./Pages/LiveExam/liveExams";
 
 const router = createBrowserRouter([
   {
@@ -99,6 +100,10 @@ const router = createBrowserRouter([
       {
         path: "/HSCOthersExam",
         element: <HSCOthersExam></HSCOthersExam>,
+      },
+      {
+        path: "/LiveExams",
+        element: <LiveExamsPage></LiveExamsPage>,
       },
     ],
   },

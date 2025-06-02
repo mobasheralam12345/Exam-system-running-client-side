@@ -7,15 +7,17 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [showExamMenu, setShowExamMenu] = useState(false);
   const [showHscMenu, setShowHscMenu] = useState(false);
-  const [activeMenu, setActiveMenu] = useState(""); // Track the active menu
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const examTimeoutRef = useRef(null);
+  const hscTimeoutRef = useRef(null);
 
   const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
 
   const handleLogOut = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("token");
-
+    setIsMobileMenuOpen(false);
     Swal.fire({
       title: "Logout Successfully",
       icon: "success",
@@ -27,6 +29,37 @@ const Navbar = () => {
       navigate("/login");
     });
   };
+
+  const handleDropdownEnter = (menu) => {
+    if (menu === 'bcs') {
+      clearTimeout(examTimeoutRef.current);
+      setShowExamMenu(true);
+      setShowHscMenu(false);
+    } else if (menu === 'hsc') {
+      clearTimeout(hscTimeoutRef.current);
+      setShowHscMenu(true);
+      setShowExamMenu(false);
+    }
+  };
+
+  const handleDropdownLeave = (menu) => {
+    if (menu === 'bcs') {
+      examTimeoutRef.current = setTimeout(() => {
+        setShowExamMenu(false);
+      }, 200);
+    } else if (menu === 'hsc') {
+      hscTimeoutRef.current = setTimeout(() => {
+        setShowHscMenu(false);
+      }, 200);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(examTimeoutRef.current);
+      clearTimeout(hscTimeoutRef.current);
+    };
+  }, []);
 
   const handleClickOutside = (event) => {
     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -42,173 +75,415 @@ const Navbar = () => {
     };
   }, []);
 
-  return (
-    <div className="navbar flex justify-between  ml-2 items-center px-10 py-5 shadow-md text-xl font-semibold">
-      <div className="navbar-start">
-        <a className="text-2xl font-bold ">
-          Online Examination System Management
-        </a>
-      </div>
-      <div
-        className="navbar-center flex-grow flex justify-center"
-        ref={dropdownRef}
-      >
-        <ul className="flex space-x-2 relative">
-          <NavLink
-            to="/"
-            className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
-              activeMenu === "home"
-                ? "bg-orange-700 text-white"
-                : "hover:bg-orange-700 hover:text-white"
-            }`}
-            onClick={() => setActiveMenu("home")}
-          >
-            Home
-          </NavLink>
+  const DropdownItem = ({ to, onClick, children }) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="block px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 transform hover:translate-x-2"
+    >
+      {children}
+    </Link>
+  );
 
-          {/* <NavLink
-                        to="/about"
-                        className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
-                            activeMenu === "about" ? "bg-orange-700 text-white" : "hover:bg-orange-700 hover:text-white"
-                        }`}
-                        onClick={() => setActiveMenu("about")}
+  const MobileNavItem = ({ to, onClick, children }) => (
+    <NavLink
+      to={to}
+      onClick={() => {
+        setIsMobileMenuOpen(false);
+        onClick?.();
+      }}
+      className={({ isActive }) =>
+        `block w-full px-5 py-3 text-left text-base md:text-lg font-semibold ${
+          isActive
+            ? "bg-blue-600 text-white"
+            : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+        }`
+      }
+    >
+      {children}
+    </NavLink>
+  );
+
+  return (
+    <>
+      <div className="h-20">
+        {/* This empty div creates space for the fixed navbar */}
+      </div>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+        <div className="max-w-8xl mx-auto px-4">
+          <div className="flex items-center justify-between h-24">
+            {/* Logo - Always on the left */}
+            <div className="flex-shrink-0 w-1/4">
+              <Link 
+                to="/" 
+                className="text-2xl sm:text-2xl md:text-2xl lg:text-3xl xl:text-4xl font-extrabold transition-all duration-300 hover:scale-[1.02]"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  ExamDesk BD
+                </span>
+              </Link>
+            </div>
+
+            {/* Desktop Navigation - Center */}
+            <div className="hidden lg:flex flex-1 w-2/4 justify-center items-center gap-6 xl:gap-8">
+              {/* Live Exams */}
+              <NavLink
+                to="/LiveExams"
+                className={({ isActive }) =>
+                  `rounded-lg text-sm lg:text-base xl:text-lg font-extrabold transition-all duration-300 px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 border-2 hover:scale-105 ${
+                    isActive
+                      ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
+                      : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
+                  }`
+                }
+              >
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 lg:h-2.5 w-2 lg:w-2.5">
+                    <span className="animate-ping absolute inline-flex h-2 lg:h-2.5 w-2 lg:w-2.5 rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 lg:h-2.5 w-2 lg:w-2.5 bg-emerald-500"></span>
+                  </span>
+                  Live Exams
+                </div>
+              </NavLink>
+
+              {/* Desktop Dropdowns */}
+              <div className="relative group">
+                <button
+                  className={`rounded-lg text-sm lg:text-base xl:text-lg font-bold transition-all duration-300 px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 hover:scale-105 ${
+                    showExamMenu
+                      ? "bg-blue-600 text-white shadow-lg"
+                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md"
+                  }`}
+                >
+                  BCS Exam
+                  <svg
+                    className={`w-4 lg:w-5 h-4 lg:h-5 transition-transform duration-200 inline-block ml-1 lg:ml-2 group-hover:rotate-180`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
+                <div className="absolute right-0 mt-2 w-56 lg:w-64 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
+                  <div className="py-2">
+                    <DropdownItem to="/exam">All Questions Exam</DropdownItem>
+                    <DropdownItem to="/subjectwise-exam">Subject Wise Exam</DropdownItem>
+                    <DropdownItem
+                      to="/BCSOthersExam"
+                      onClick={() => localStorage.removeItem("selectedOptions")}
                     >
-                        About
-                    </NavLink> */}
-          {/* BCS Exam Dropdown */}
-          <div className="relative mr-4">
-            <button
-              onClick={() => {
-                setShowExamMenu(!showExamMenu);
-                setActiveMenu("bcsExam");
-              }}
-              className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 flex items-center ${
-                activeMenu === "bcsExam"
-                  ? "bg-orange-700 text-white"
-                  : "hover:bg-orange-800 hover:text-white"
-              }`}
-            >
-              BCS Exam
-              <span className="ml-2">▼</span>
-            </button>
-            {showExamMenu && (
-              <ul className="absolute bg-white shadow-lg rounded-md mt-2 py-2 w-48 z-10">
-                <li>
-                  <NavLink
-                    to="/exam"
-                    className="block mb-2 hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
-                    onClick={() => setShowExamMenu(false)}
+                      Others
+                    </DropdownItem>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <button
+                  className={`rounded-lg text-sm lg:text-base xl:text-lg font-bold transition-all duration-300 px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 hover:scale-105 ${
+                    showHscMenu
+                      ? "bg-blue-600 text-white shadow-lg"
+                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md"
+                  }`}
+                >
+                  HSC Exam
+                  <svg
+                    className={`w-4 lg:w-5 h-4 lg:h-5 transition-transform duration-200 inline-block ml-1 lg:ml-2 group-hover:rotate-180`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    All Questions Exam
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/subjectwise-exam"
-                    className="block hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
-                    onClick={() => setShowExamMenu(false)}
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
+                <div className="absolute right-0 mt-2 w-56 lg:w-64 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
+                  <div className="py-2">
+                    <DropdownItem to="/hsc/all-questions">All Questions Exam</DropdownItem>
+                    <DropdownItem to="/hsc/subjectwise">Subject Wise Exam</DropdownItem>
+                    <DropdownItem
+                      to="/HSCOthersExam"
+                      onClick={() => localStorage.removeItem("selectedOptions")}
+                    >
+                      Others
+                    </DropdownItem>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="flex lg:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="inline-flex items-center justify-center p-2 rounded-md text-black hover:text-black hover:bg-gray-100 focus:outline-none transition-all duration-300 hover:scale-105"
+              >
+                <span className="sr-only">Open main menu</span>
+                <div className="w-6 sm:w-7 h-6 sm:h-7 flex flex-col justify-between">
+                  <span 
+                    className={`block w-full h-0.5 bg-current transform transition-all duration-300 ${
+                      isMobileMenuOpen ? 'rotate-45 translate-y-3' : ''
+                    }`}
+                  />
+                  <span 
+                    className={`block w-full h-0.5 bg-current transition-all duration-300 ${
+                      isMobileMenuOpen ? 'opacity-0' : ''
+                    }`}
+                  />
+                  <span 
+                    className={`block w-full h-0.5 bg-current transform transition-all duration-300 ${
+                      isMobileMenuOpen ? '-rotate-45 -translate-y-3' : ''
+                    }`}
+                  />
+                </div>
+              </button>
+            </div>
+
+            {/* Auth Button - Always on the right */}
+            <div className="hidden lg:flex items-center justify-end w-1/4 gap-4">
+              {isAuthenticated ? (
+                <>
+                  <div className="relative group">
+                    <button
+                      className="flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-50 p-2 text-gray-600 hover:text-blue-600 transition-all duration-300 hover:scale-105 hover:shadow-md"
+                    >
+                      <svg 
+                        className="w-7 h-7 lg:w-8 lg:h-8" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth="1.5" 
+                          d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                    <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
+                    <div
+                      className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto"
+                    >
+                      <div className="py-2">
+                        <Link
+                          to="/dashboard"
+                          className="flex items-center gap-2 px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                        >
+                          <svg 
+                            className="w-5 h-5" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth="2" 
+                              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            />
+                          </svg>
+                          Dashboard
+                        </Link>
+                        <Link
+                          to="/profile"
+                          className="flex items-center gap-2 px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                        >
+                          <svg 
+                            className="w-5 h-5" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth="2" 
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
+                          </svg>
+                          Profile
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogOut}
+                    className="px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 bg-red-600 text-white text-sm lg:text-base xl:text-lg font-bold rounded-lg hover:bg-red-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
                   >
-                    Subject Wise Exam
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/BCSOthersExam"
-                    className="block hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
-                    onClick={() => {
-                      localStorage.removeItem("selectedOptions"); // ⬅️ clears localStorage
-                      setShowExamMenu(false);
-                    }}
-                  >
-                     Others
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+                    Log Out
+                  </button>
+                </>
+              ) : (
+                <Link to="/login">
+                  <button className="px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 bg-blue-600 text-white text-sm lg:text-base xl:text-lg font-bold rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
+                    Login
+                  </button>
+                </Link>
+              )}
+            </div>
           </div>
-          {/* HSC Exam Dropdown */}
-          <div className="relative">
+        </div>
+      </nav>
+
+      {/* Mobile Navigation Menu */}
+      <div
+        className={`lg:hidden transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen
+            ? "max-h-screen opacity-100 visible"
+            : "max-h-0 opacity-0 invisible"
+        }`}
+      >
+        <div className="px-2 pt-2 pb-3 space-y-1 bg-white shadow-lg">
+          <MobileNavItem to="/live-exams">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              Live Exams
+            </div>
+          </MobileNavItem>
+
+          {/* Mobile BCS Menu */}
+          <div className="space-y-1">
             <button
-              onClick={() => {
-                setShowHscMenu(!showHscMenu);
-                setActiveMenu("hscExam");
-              }}
-              className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 flex items-center ${
-                activeMenu === "hscExam"
-                  ? "bg-orange-700 text-white"
-                  : "hover:bg-orange-700 hover:text-white"
-              }`}
+              onClick={() => setShowExamMenu(!showExamMenu)}
+              className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
             >
-              HSC Exam
-              <span className="ml-2">▼</span>
+              <span>BCS Exam</span>
+              <svg
+                className={`w-5 h-5 transition-transform duration-200 ${
+                  showExamMenu ? "rotate-180" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-            {showHscMenu && (
-              <ul className="absolute bg-white shadow-lg rounded-md mt-2 py-2 w-48 z-10">
-                <li>
-                  <NavLink
-                    to="/hsc/all-questions"
-                    className="block mb-2 hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
-                    onClick={() => setShowHscMenu(false)}
-                  >
-                    All Questions Exam
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/hsc/subjectwise"
-                    className="block hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
-                    onClick={() => setShowHscMenu(false)}
-                  >
-                    Subject Wise Exam
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="HSCOthersExam"
-                    className="block hover:bg-orange-700 hover:text-white rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2"
-                    onClick={() => {
-                      localStorage.removeItem("selectedOptions"); // ⬅️ clears localStorage
-                      setShowHscMenu(false);
-                    }}
-                  >
-                    Others
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+            <div className={`pl-4 space-y-1 ${showExamMenu ? "block" : "hidden"}`}>
+              <MobileNavItem to="/exam">All Questions Exam</MobileNavItem>
+              <MobileNavItem to="/subjectwise-exam">Subject Wise Exam</MobileNavItem>
+              <MobileNavItem 
+                to="/BCSOthersExam"
+                onClick={() => localStorage.removeItem("selectedOptions")}
+              >
+                Others
+              </MobileNavItem>
+            </div>
           </div>
+
+          {/* Mobile HSC Menu */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setShowHscMenu(!showHscMenu)}
+              className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
+            >
+              <span>HSC Exam</span>
+              <svg
+                className={`w-5 h-5 transition-transform duration-200 ${
+                  showHscMenu ? "rotate-180" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className={`pl-4 space-y-1 ${showHscMenu ? "block" : "hidden"}`}>
+              <MobileNavItem to="/hsc/all-questions">All Questions Exam</MobileNavItem>
+              <MobileNavItem to="/hsc/subjectwise">Subject Wise Exam</MobileNavItem>
+              <MobileNavItem 
+                to="/HSCOthersExam"
+                onClick={() => localStorage.removeItem("selectedOptions")}
+              >
+                Others
+              </MobileNavItem>
+            </div>
+          </div>
+
           {isAuthenticated && (
-            <NavLink
-              to="/dashboard"
-              className={`rounded-lg text-lg font-bold transition-colors duration-300 px-4 py-2 ${
-                activeMenu === "dashboard"
-                  ? "bg-orange-800 text-white"
-                  : "hover:bg-orange-800 hover:text-white"
-              }`}
-              onClick={() => setActiveMenu("dashboard")}
-            >
-              Dashboard
-            </NavLink>
+            <>
+              <MobileNavItem to="/dashboard">
+                <div className="flex items-center gap-2">
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth="2" 
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                    />
+                  </svg>
+                  Dashboard
+                </div>
+              </MobileNavItem>
+              <MobileNavItem to="/profile">
+                <div className="flex items-center gap-2">
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth="2" 
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  Profile
+                </div>
+              </MobileNavItem>
+            </>
           )}
-        </ul>
-      </div>
-      <div>
-        {isAuthenticated ? (
-          <button
-            onClick={handleLogOut}
-            className="btn bg-blue-500 text-white rounded-md ml-2"
-          >
-            Log Out
-          </button>
-        ) : (
-          <Link to="/login">
-            <button className="btn bg-blue-500 text-white text-md rounded-md">
-              Login
+
+          {/* Mobile Auth Button */}
+          {isAuthenticated ? (
+            <button
+              onClick={handleLogOut}
+              className="w-full flex items-center gap-2 px-5 py-4 text-base md:text-lg font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors rounded-lg"
+            >
+              <svg 
+                className="w-5 h-5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              Log Out
             </button>
-          </Link>
-        )}
+          ) : (
+            <Link 
+              to="/login" 
+              className="block"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <button className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors rounded-lg">
+                Login
+              </button>
+            </Link>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
