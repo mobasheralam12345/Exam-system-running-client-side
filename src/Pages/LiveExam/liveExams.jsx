@@ -1,21 +1,34 @@
 import { useState, useEffect } from "react";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const FilterDrawer = ({
   isOpen,
   onClose,
   selectedCategory,
   setSelectedCategory,
-  selectedSubCategory,
-  setSelectedSubCategory,
+  selectedTestType,
+  setSelectedTestType,
+  selectedSubjects,
+  setSelectedSubjects,
   categories,
+  testTypes,
+  subjects,
   activeFiltersCount,
   clearFilters,
 }) => {
+  const handleSubjectToggle = (subject) => {
+    setSelectedSubjects((prev) =>
+      prev.includes(subject)
+        ? prev.filter((s) => s !== subject)
+        : [...prev, subject]
+    );
+  };
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -23,35 +36,39 @@ const FilterDrawer = ({
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl z-50 transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 h-full w-96 max-w-[90vw] bg-white shadow-2xl z-50 transform transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
-            <div className="flex items-center space-x-2">
-              <svg
-                className="w-5 h-5 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                />
-              </svg>
-              <h3 className="text-lg font-semibold text-gray-700">Filters</h3>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800">
+                Advanced Filters
+              </h3>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-50 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
             >
               <svg
-                className="w-5 h-5 text-gray-500"
+                className="w-6 h-6 text-gray-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -67,110 +84,133 @@ const FilterDrawer = ({
           </div>
 
           {/* Filter Content */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8">
             {/* Active Filters */}
             {activeFiltersCount > 0 && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-800">
                     {activeFiltersCount} filter
                     {activeFiltersCount > 1 ? "s" : ""} active
                   </span>
-                </div>
-                <button
-                  onClick={clearFilters}
-                  className="flex items-center space-x-1 text-sm text-blue-500 hover:text-blue-600 font-medium"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm text-blue-700 hover:text-blue-900 font-medium"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                  <span>Clear all</span>
-                </button>
+                    Clear all
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Category Filter */}
+            {/* Exam Category Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-3">
-                Category
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                📚 Exam Category
               </label>
               <div className="space-y-2">
                 <button
-                  onClick={() => {
-                    setSelectedCategory("all");
-                    setSelectedSubCategory("all");
-                  }}
-                  className={`w-full flex items-center p-3 rounded-xl border transition-all ${
+                  onClick={() => setSelectedCategory("all")}
+                  className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                     selectedCategory === "all"
-                      ? "border-blue-100/80 bg-blue-50/30 text-blue-500/90"
-                      : "border-gray-100/80 hover:border-gray-200/80 hover:bg-gray-50/30 text-gray-500 hover:text-gray-600"
+                      ? "border-blue-500 bg-blue-600 text-white shadow-md"
+                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
                   }`}
                 >
-                  <span className="mr-3">🌟</span>
-                  <span className="font-medium">All Categories</span>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">🌟</span>
+                    <span className="font-medium">All Categories</span>
+                  </div>
                 </button>
-
-                {Object.entries(categories).map(([key, category]) => (
+                {categories.map((category) => (
                   <button
-                    key={key}
-                    onClick={() => {
-                      setSelectedCategory(key);
-                      setSelectedSubCategory("all");
-                    }}
-                    className={`w-full flex items-center p-3 rounded-xl border transition-all ${
-                      selectedCategory === key
-                        ? "border-blue-100/80 bg-blue-50/30 text-blue-500/90"
-                        : "border-gray-100/80 hover:border-gray-200/80 hover:bg-gray-50/30 text-gray-500 hover:text-gray-600"
+                    key={category.value}
+                    onClick={() => setSelectedCategory(category.value)}
+                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                      selectedCategory === category.value
+                        ? "border-blue-500 bg-blue-600 text-white shadow-md"
+                        : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
                     }`}
                   >
-                    <span className="mr-3">{category.icon}</span>
-                    <span className="font-medium">{category.name}</span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">{category.icon}</span>
+                      <span className="font-medium">{category.name}</span>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Sub-Category Filter */}
-            {selectedCategory !== "all" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-3">
-                  Test Type
-                </label>
-                <div className="space-y-2">
+            {/* Test Type Filter */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                🎯 Test Type
+              </label>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setSelectedTestType("all")}
+                  className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                    selectedTestType === "all"
+                      ? "border-purple-500 bg-purple-600 text-white shadow-md"
+                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="font-medium">All Types</span>
+                </button>
+                {testTypes.map((type) => (
                   <button
-                    onClick={() => setSelectedSubCategory("all")}
-                    className={`w-full flex items-center p-3 rounded-xl border transition-all ${
-                      selectedSubCategory === "all"
-                        ? "border-blue-100/80 bg-blue-50/30 text-blue-500/90"
-                        : "border-gray-100/80 hover:border-gray-200/80 hover:bg-gray-50/30 text-gray-500 hover:text-gray-600"
+                    key={type.value}
+                    onClick={() => setSelectedTestType(type.value)}
+                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                      selectedTestType === type.value
+                        ? "border-purple-500 bg-purple-600 text-white shadow-md"
+                        : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
                     }`}
                   >
-                    <span className="font-medium">All Types</span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xl">{type.icon}</span>
+                      <span className="font-medium">{type.name}</span>
+                    </div>
                   </button>
+                ))}
+              </div>
+            </div>
 
-                  {Object.entries(
-                    categories[selectedCategory]?.subCategories || {}
-                  ).map(([key, name]) => (
+            {/* Subject Filter - Only show when subject-wise is selected */}
+            {selectedTestType === "subject-wise" && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-4">
+                  📖 Subjects ({selectedSubjects.length} selected)
+                </label>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {subjects.map((subject) => (
                     <button
-                      key={key}
-                      onClick={() => setSelectedSubCategory(key)}
-                      className={`w-full flex items-center p-3 rounded-xl border transition-all ${
-                        selectedSubCategory === key
-                          ? "border-blue-100/80 bg-blue-50/30 text-blue-500/90"
-                          : "border-gray-100/80 hover:border-gray-200/80 hover:bg-gray-50/30 text-gray-500 hover:text-gray-600"
+                      key={subject}
+                      onClick={() => handleSubjectToggle(subject)}
+                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                        selectedSubjects.includes(subject)
+                          ? "border-green-500 bg-green-600 text-white shadow-md"
+                          : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
                       }`}
                     >
-                      <span className="font-medium">{name}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{subject}</span>
+                        {selectedSubjects.includes(subject) && (
+                          <svg
+                            className="w-5 h-5 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -183,155 +223,187 @@ const FilterDrawer = ({
   );
 };
 
+// Subjects Overlay Component
+const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      />
+
+      {/* Overlay Content */}
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold mb-1">Exam Subjects</h3>
+              <p className="text-blue-100 text-sm">{examTitle}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Subjects List */}
+        <div className="p-6 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {subjects.map((subject, index) => (
+              <div
+                key={index}
+                className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 border-l-4 border-blue-500 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      {subject.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {subject.questionCount} Questions
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      {subject.questionCount} Q
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              Total: {subjects.length} subjects,{" "}
+              {subjects.reduce((sum, s) => sum + s.questionCount, 0)} questions
+            </span>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const LiveExamsPage = () => {
   const [searchCode, setSearchCode] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSubCategory, setSelectedSubCategory] = useState("all");
+  const [selectedTestType, setSelectedTestType] = useState("all");
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [filteredExams, setFilteredExams] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [selectedExamForSubjects, setSelectedExamForSubjects] = useState(null);
+  const [liveExams, setLiveExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock exam data with different states (running, upcoming soon, upcoming later)
-  const [exams] = useState([
-    {
-      id: 1,
-      code: "BCS001",
-      name: "47th BCS Preliminary Test",
-      category: "bcs",
-      subCategory: "full-model",
-      date: new Date(Date.now() - 15 * 60 * 1000), // Started 15 mins ago (RUNNING)
-      duration: 120,
-      totalQuestions: 200,
-      isLive: true,
-      participants: 1234,
-      difficulty: "Hard",
-    },
-    {
-      id: 2,
-      code: "HSC002",
-      name: "Physics Model Test 2024",
-      category: "hsc",
-      subCategory: "subject-wise",
-      date: new Date(Date.now() + 30 * 60 * 1000), // Starting in 30 mins (COUNTDOWN)
-      duration: 180,
-      totalQuestions: 100,
-      isLive: true,
-      participants: 856,
-      difficulty: "Medium",
-    },
-    {
-      id: 3,
-      code: "BANK003",
-      name: "Combined Bank Officer Exam",
-      category: "bank",
-      subCategory: "full-model",
-      date: new Date(Date.now() + 45 * 60 * 1000), // Starting in 45 mins (COUNTDOWN)
-      duration: 60,
-      totalQuestions: 80,
-      isLive: true,
-      participants: 2341,
-      difficulty: "Hard",
-    },
-    {
-      id: 4,
-      code: "BCS004",
-      name: "English Literature Practice",
-      category: "bcs",
-      subCategory: "subject-wise",
-      date: new Date(Date.now() + 2 * 60 * 60 * 1000), // Starting in 2 hours (SET REMINDER)
-      duration: 90,
-      totalQuestions: 50,
-      isLive: true,
-      participants: 567,
-      difficulty: "Easy",
-    },
-    {
-      id: 5,
-      code: "HSC005",
-      name: "Mathematics Full Test",
-      category: "hsc",
-      subCategory: "full-model",
-      date: new Date(Date.now() - 30 * 60 * 1000), // Started 30 mins ago (RUNNING)
-      duration: 150,
-      totalQuestions: 120,
-      isLive: true,
-      participants: 1089,
-      difficulty: "Hard",
-    },
-    {
-      id: 6,
-      code: "BANK006",
-      name: "General Knowledge Quiz",
-      category: "bank",
-      subCategory: "others",
-      date: new Date(Date.now() + 90 * 60 * 60 * 1000), // Starting in 1.5 hours (SET REMINDER)
-      duration: 45,
-      totalQuestions: 60,
-      isLive: true,
-      participants: 789,
-      difficulty: "Medium",
-    },
-    {
-      id: 7,
-      code: "BCS007",
-      name: "General Science Mock Test",
-      category: "bcs",
-      subCategory: "subject-wise",
-      date: new Date(Date.now() + 15 * 60 * 1000), // Starting in 15 mins (COUNTDOWN)
-      duration: 75,
-      totalQuestions: 40,
-      isLive: true,
-      participants: 456,
-      difficulty: "Medium",
-    },
-    {
-      id: 8,
-      code: "HSC008",
-      name: "Chemistry Advanced Test",
-      category: "hsc",
-      subCategory: "full-model",
-      date: new Date(Date.now() + 3 * 60 * 60 * 1000), // Starting in 3 hours (SET REMINDER)
-      duration: 120,
-      totalQuestions: 80,
-      isLive: true,
-      participants: 623,
-      difficulty: "Hard",
-    },
-  ]);
+  // Only BCS, HSC, Bank
+  const categories = [
+    { value: "BCS", name: "BCS", icon: "🎓" },
+    { value: "HSC", name: "HSC", icon: "📚" },
+    { value: "Bank", name: "Bank", icon: "🏦" },
+  ];
 
-  const categories = {
-    bcs: {
-      name: "BCS",
-      icon: "🎓",
-      color: "from-blue-500 to-indigo-600",
-      subCategories: {
-        "full-model": "Full Model Test",
-        "subject-wise": "Subject Wise",
-        others: "Others",
-      },
-    },
-    hsc: {
-      name: "HSC",
-      icon: "📚",
-      color: "from-green-500 to-emerald-600",
-      subCategories: {
-        "full-model": "Full Model Test",
-        "subject-wise": "Subject Wise",
-        others: "Others",
-      },
-    },
-    bank: {
-      name: "Bank",
-      icon: "🏦",
-      color: "from-purple-500 to-violet-600",
-      subCategories: {
-        "full-model": "Full Model Test",
-        "subject-wise": "Subject Wise",
-        others: "Others",
-      },
-    },
-  };
+  const testTypes = [
+    { value: "model-test", name: "Model Test", icon: "🎯" },
+    { value: "subject-wise", name: "Subject Wise", icon: "📖" },
+  ];
+
+  const subjects = [
+    "বাংলা ভাষা ও সাহিত্য",
+    "English Language and Literature",
+    "গণিত",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "সাধারণ জ্ঞান",
+    "General Knowledge",
+    "বিজ্ঞান",
+    "কম্পিউটার ও তথ্য প্রযুক্তি",
+    "মানসিক দক্ষতা",
+    "নৈতিকতা ও মূল্যবোধ",
+    "ভূগোল ও পরিবেশ",
+    "বাংলাদেশ ও বিশ্বপরিচয়",
+    "Banking",
+    "Accounting",
+    "Economics",
+    "Finance",
+    "Management",
+  ];
+
+  // Runtime guard for invalid categories
+  useEffect(() => {
+    const allowedCategories = ["BCS", "HSC", "Bank"];
+    if (
+      selectedCategory !== "all" &&
+      !allowedCategories.includes(selectedCategory)
+    ) {
+      setSelectedCategory("all");
+      setSelectedTestType("all");
+      setSelectedSubjects([]);
+    }
+  }, [selectedCategory]);
+
+  // Fetch live exams from API
+  useEffect(() => {
+    const fetchLiveExams = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${BACKEND_URL}/liveExam/mock`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch live exams");
+        }
+        const data = await response.json();
+        if (data.success) {
+          // Filter only BCS, HSC, Bank exams
+          const filteredData = data.data.exams.filter((exam) =>
+            ["BCS", "HSC", "Bank"].includes(exam.examType)
+          );
+          setLiveExams(filteredData);
+        } else {
+          throw new Error(data.message || "Failed to fetch live exams");
+        }
+      } catch (error) {
+        console.error("Error fetching live exams:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLiveExams();
+  }, []);
 
   // Update current time every second
   useEffect(() => {
@@ -345,39 +417,77 @@ const LiveExamsPage = () => {
   useEffect(() => {
     let count = 0;
     if (selectedCategory !== "all") count++;
-    if (selectedSubCategory !== "all") count++;
+    if (selectedTestType !== "all") count++;
+    if (selectedSubjects.length > 0) count++;
     setActiveFiltersCount(count);
-  }, [selectedCategory, selectedSubCategory]);
+  }, [selectedCategory, selectedTestType, selectedSubjects]);
 
-  // Filter exams
+  // Filter exams based on your model requirements
   useEffect(() => {
-    let filtered = exams;
+    let filtered = liveExams;
 
+    // Search by code or title
     if (searchCode) {
-      filtered = filtered.filter((exam) =>
-        exam.name.toLowerCase().includes(searchCode.toLowerCase())
-      );
-    }
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((exam) => exam.category === selectedCategory);
-    }
-
-    if (selectedSubCategory !== "all") {
       filtered = filtered.filter(
-        (exam) => exam.subCategory === selectedSubCategory
+        (exam) =>
+          (exam.code &&
+            exam.code.toLowerCase().includes(searchCode.toLowerCase())) ||
+          exam.title.toLowerCase().includes(searchCode.toLowerCase())
       );
     }
+
+    // Filter by category (examType) - only allow BCS, HSC, Bank
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(
+        (exam) =>
+          exam.examType === selectedCategory &&
+          ["BCS", "HSC", "Bank"].includes(exam.examType)
+      );
+    } else {
+      // Even when "all" is selected, only show BCS, HSC, Bank
+      filtered = filtered.filter((exam) =>
+        ["BCS", "HSC", "Bank"].includes(exam.examType)
+      );
+    }
+
+    // Filter by test type (tags)
+    if (selectedTestType !== "all") {
+      filtered = filtered.filter(
+        (exam) => exam.tags && exam.tags.includes(selectedTestType)
+      );
+    }
+
+    // Filter by subjects (exact match logic)
+    if (selectedSubjects.length > 0) {
+      filtered = filtered.filter((exam) => {
+        const examSubjects = exam.subjects.map((s) => s.name);
+        return (
+          selectedSubjects.every((subject) => examSubjects.includes(subject)) &&
+          examSubjects.filter((subject) => selectedSubjects.includes(subject))
+            .length === selectedSubjects.length
+        );
+      });
+    }
+
+    // Only show non-expired exams
+    filtered = filtered.filter((exam) => new Date(exam.endTime) > currentTime);
 
     setFilteredExams(filtered);
-  }, [searchCode, selectedCategory, selectedSubCategory, exams]);
+  }, [
+    searchCode,
+    selectedCategory,
+    selectedTestType,
+    selectedSubjects,
+    liveExams,
+    currentTime,
+  ]);
 
-  const getExamStatus = (examDate, duration) => {
-    const timeDiff = examDate.getTime() - currentTime.getTime();
-    const examEndTime = examDate.getTime() + duration * 60 * 1000;
-    const timeToEnd = examEndTime - currentTime.getTime();
+  const getExamStatus = (startTime, endTime) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const timeDiff = start.getTime() - currentTime.getTime();
+    const timeToEnd = end.getTime() - currentTime.getTime();
 
-    // Exam is currently running
     if (timeDiff <= 0 && timeToEnd > 0) {
       return {
         status: "running",
@@ -385,26 +495,24 @@ const LiveExamsPage = () => {
         buttonText: "🚀 Enter Exam",
         buttonColor: "from-green-500 to-emerald-600",
         statusText: "🔴 LIVE NOW",
+        statusColor: "bg-red-500 text-white",
       };
     }
 
-    // Exam has ended
     if (timeToEnd <= 0) {
       return {
         status: "ended",
         buttonText: "⏰ Exam Ended",
         buttonColor: "from-gray-400 to-gray-500",
         statusText: "⚫ ENDED",
+        statusColor: "bg-gray-500 text-white",
       };
     }
 
-    // Upcoming exam
     const totalSeconds = Math.floor(timeDiff / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-
-    // Check if exam starts in more than 1 hour
     const isMoreThanOneHour = hours > 1;
 
     return {
@@ -418,6 +526,7 @@ const LiveExamsPage = () => {
         ? "from-purple-500 to-violet-600"
         : "from-blue-500 to-indigo-600",
       statusText: "🟢 UPCOMING",
+      statusColor: "bg-green-500 text-white",
     };
   };
 
@@ -432,7 +541,7 @@ const LiveExamsPage = () => {
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString("en-US", {
+    return new Date(date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -440,146 +549,182 @@ const LiveExamsPage = () => {
     });
   };
 
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case "Easy":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "Medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Hard":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
   const clearFilters = () => {
     setSelectedCategory("all");
-    setSelectedSubCategory("all");
+    setSelectedTestType("all");
+    setSelectedSubjects([]);
     setSearchCode("");
   };
 
+  const getCategoryConfig = (examType) => {
+    const configs = {
+      BCS: { color: "from-blue-500 to-indigo-600", icon: "🎓" },
+      HSC: { color: "from-green-500 to-emerald-600", icon: "📚" },
+      Bank: { color: "from-purple-500 to-violet-600", icon: "🏦" },
+    };
+    return (
+      configs[examType] || { color: "from-gray-500 to-gray-600", icon: "📝" }
+    );
+  };
+
   const ExamCard = ({ exam }) => {
-    const examStatus = getExamStatus(exam.date, exam.duration);
-    const category = categories[exam.category];
+    const examStatus = getExamStatus(exam.startTime, exam.endTime);
+    const categoryConfig = getCategoryConfig(exam.examType);
 
     const handleSetReminder = (e) => {
       e.preventDefault();
-      // TODO: Implement reminder functionality
-      alert("Reminder will be set for: " + exam.name);
+      alert(`Reminder set for: ${exam.title}`);
+    };
+
+    const handleEnterExam = (e) => {
+      e.preventDefault();
+      // Navigate to exam page
+      window.location.href = `/exam/${exam.id}`;
     };
 
     return (
-      <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200 overflow-hidden h-full flex flex-col relative before:absolute before:inset-0 before:z-0 before:bg-gradient-to-b before:from-blue-50/0 before:to-blue-50/0 hover:before:to-blue-50/50 before:transition-colors before:duration-500">
-        {/* Card Header with Gradient */}
+      <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200 overflow-hidden h-full flex flex-col relative">
+        {/* Card Header */}
         <div
-          className={`bg-gradient-to-r ${category.color} p-4 relative overflow-hidden z-10`}
+          className={`bg-gradient-to-r ${categoryConfig.color} p-5 relative overflow-hidden`}
         >
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-110"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-white bg-opacity-10 rounded-full -ml-8 -mb-8 transition-transform duration-500 group-hover:scale-110"></div>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white bg-opacity-10 rounded-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-110"></div>
 
           <div className="relative z-10 flex justify-between items-start">
             <div className="flex items-center space-x-3">
-              <span className="text-3xl">{category.icon}</span>
+              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">{categoryConfig.icon}</span>
+              </div>
               <div>
-                <h4 className="text-white font-semibold text-lg mb-0.5">
-                  {category.name}
+                <h4 className="text-white font-bold text-lg">
+                  {exam.examType}
                 </h4>
                 <p className="text-white text-opacity-90 text-sm">
-                  {examStatus.statusText}
+                  {exam.code
+                    ? `Code: ${exam.code}`
+                    : `ID: ${exam.id.slice(-6)}`}
                 </p>
               </div>
             </div>
             <div className="flex flex-col items-end space-y-2">
-              {examStatus.status === "running" && (
-                <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full font-medium animate-pulse">
-                  LIVE
+              <span
+                className={`text-xs px-3 py-1 rounded-full font-medium ${examStatus.statusColor} animate-pulse`}
+              >
+                {examStatus.statusText}
+              </span>
+              {exam.isPremium && (
+                <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
+                  ⭐ Premium
                 </span>
               )}
-              <span
-                className={`text-sm px-3 py-1 rounded-full border ${getDifficultyColor(
-                  exam.difficulty
-                )}`}
-              >
-                {exam.difficulty}
-              </span>
             </div>
           </div>
         </div>
 
-        <div className="p-4 md:p-5 flex-1 flex flex-col relative z-10">
-          {/* Exam Title */}
-          <h3 className="text-xl font-bold text-gray-900 mb-4 line-clamp-2 transition-colors duration-300 group-hover:text-blue-700">
-            {exam.name}
+        <div className="p-5 flex-1 flex flex-col space-y-4">
+          {/* Title */}
+          <h3 className="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-blue-700 transition-colors">
+            {exam.title}
           </h3>
 
           {/* Test Type Badge */}
-          <div className="mb-4">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 group-hover:bg-blue-100 group-hover:text-blue-800 transition-colors duration-300">
-              {categories[exam.category]?.subCategories[exam.subCategory]}
+          <div className="flex items-center space-x-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+              {exam.tags && exam.tags.includes("model-test")
+                ? "🎯 Model Test"
+                : exam.tags && exam.tags.includes("subject-wise")
+                ? "📖 Subject Wise"
+                : "📝 General"}
             </span>
+            {exam.password && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                🔒 Protected
+              </span>
+            )}
           </div>
 
           {/* Exam Stats */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center transition-colors duration-300 group-hover:bg-blue-100">
-                <svg
-                  className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors duration-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
-                  Duration
-                </p>
-                <p className="text-sm font-semibold group-hover:text-blue-700 transition-colors duration-300">
-                  {exam.duration}m
-                </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Duration</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    {exam.duration}m
+                  </p>
+                </div>
               </div>
             </div>
-
-            <div className="flex items-center space-x-2 text-gray-600">
-              <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center transition-colors duration-300 group-hover:bg-green-100">
-                <svg
-                  className="w-4 h-4 text-green-500 group-hover:text-green-600 transition-colors duration-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
-                  Questions
-                </p>
-                <p className="text-sm font-semibold group-hover:text-blue-700 transition-colors duration-300">
-                  {exam.totalQuestions}
-                </p>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-4 h-4 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Questions</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    {exam.totalQuestions}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Date and Participants */}
-          <div className="space-y-3 mb-4 mt-auto">
-            <div className="flex items-center text-gray-600 group-hover:text-gray-700 transition-colors duration-300">
+          {/* Subjects Button */}
+          <button
+            onClick={() => setSelectedExamForSubjects(exam)}
+            className="w-full flex items-center justify-center space-x-2 p-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 group-hover:shadow-md"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600 group-hover:text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
+            </svg>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
+              View Subjects ({exam.subjects.length})
+            </span>
+          </button>
+
+          {/* Date */}
+          <div className="space-y-2">
+            <div className="flex items-center text-gray-600">
               <svg
-                className="w-5 h-5 mr-3 text-blue-500 group-hover:text-blue-600 transition-colors duration-300"
+                className="w-5 h-5 mr-2 text-blue-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -591,54 +736,34 @@ const LiveExamsPage = () => {
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-              <span className="text-base font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-300">
-                {formatDate(exam.date)}
-              </span>
-            </div>
-
-            <div className="flex items-center text-gray-600 group-hover:text-gray-700 transition-colors duration-300">
-              <svg
-                className="w-4 h-4 mr-2 group-hover:text-blue-600 transition-colors duration-300"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              <span className="text-sm">
-                {exam.participants.toLocaleString()} joined
+              <span className="text-sm font-medium">
+                {formatDate(exam.startTime)}
               </span>
             </div>
           </div>
 
           {/* Action Button */}
-          <div className="relative z-10">
+          <div className="mt-auto">
             {examStatus.status === "upcoming" &&
             examStatus.isMoreThanOneHour ? (
-              <div className="flex flex-col space-y-2">
-                <button
-                  onClick={handleSetReminder}
-                  className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 
-                    hover:shadow-lg hover:shadow-purple-200/50 hover:scale-[1.02] active:scale-[0.98]`}
-                >
-                  🔔 Set Reminder
-                </button>
-              </div>
+              <button
+                onClick={handleSetReminder}
+                className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+              >
+                🔔 Set Reminder
+              </button>
             ) : (
               <button
+                onClick={
+                  examStatus.status === "running" ? handleEnterExam : undefined
+                }
                 className={`w-full bg-gradient-to-r ${
                   examStatus.buttonColor
-                } text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 relative z-10 
-                  ${
-                    examStatus.status === "ended"
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:shadow-lg hover:shadow-blue-200/50 hover:scale-[1.02] active:scale-[0.98]"
-                  }`}
+                } text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 ${
+                  examStatus.status === "ended"
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                }`}
                 disabled={examStatus.status === "ended"}
               >
                 {examStatus.status === "running"
@@ -658,25 +783,70 @@ const LiveExamsPage = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading live exams...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Error Loading Exams
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 -mt-16 -ml-4">
-      <div className="container mx-auto px-4 py-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+      <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
-        <div className="mb-8 mt-10">
+        <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
                 🔴 Live Exams
               </h1>
-              <p className="text-gray-600">
-                Join live exams and challenge yourself
+              <p className="text-gray-600 text-lg">
+                Join live exams and test your knowledge
               </p>
             </div>
-            <div className="hidden sm:flex items-center space-x-2">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-600">
-                  {filteredExams.length} Live
+            <div className="hidden sm:flex items-center space-x-4">
+              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {filteredExams.length} Live Exams
                 </span>
               </div>
             </div>
@@ -684,8 +854,8 @@ const LiveExamsPage = () => {
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-3">
+        <div className="mb-8">
+          <div className="flex items-center space-x-4">
             {/* Search Bar */}
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -705,20 +875,20 @@ const LiveExamsPage = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search exams..."
+                placeholder="Search by exam code or title..."
                 value={searchCode}
                 onChange={(e) => setSearchCode(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
+                className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm text-gray-900 placeholder-gray-500"
               />
             </div>
 
             {/* Filter Button */}
             <button
               onClick={() => setIsFilterOpen(true)}
-              className="relative flex items-center justify-center space-x-2 px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95"
+              className="relative flex items-center space-x-2 px-6 py-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 font-medium"
             >
               <svg
-                className="w-5 h-5 text-gray-500"
+                className="w-5 h-5 text-gray-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -730,11 +900,9 @@ const LiveExamsPage = () => {
                   d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
                 />
               </svg>
-              <span className="hidden sm:inline text-gray-600 font-medium">
-                Filter
-              </span>
+              <span className="text-gray-700">Filters</span>
               {activeFiltersCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-400 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                <span className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
                   {activeFiltersCount}
                 </span>
               )}
@@ -743,78 +911,95 @@ const LiveExamsPage = () => {
 
           {/* Active Filters Display */}
           {activeFiltersCount > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {selectedCategory !== "all" && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">
-                  {categories[selectedCategory].icon}{" "}
-                  {categories[selectedCategory].name}
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                  📚 {selectedCategory}
                   <button
-                    onClick={() => {
-                      setSelectedCategory("all");
-                      setSelectedSubCategory("all");
-                    }}
-                    className="ml-2 hover:text-blue-700"
+                    onClick={() => setSelectedCategory("all")}
+                    className="ml-2 text-blue-600 hover:text-blue-800"
                   >
                     ×
                   </button>
                 </span>
               )}
-              {selectedSubCategory !== "all" && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-600 border border-purple-100">
-                  {
-                    categories[selectedCategory]?.subCategories[
-                      selectedSubCategory
-                    ]
-                  }
+              {selectedTestType !== "all" && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                  {selectedTestType === "model-test"
+                    ? "🎯 Model Test"
+                    : "📖 Subject Wise"}
                   <button
-                    onClick={() => setSelectedSubCategory("all")}
-                    className="ml-2 hover:text-purple-700"
+                    onClick={() => setSelectedTestType("all")}
+                    className="ml-2 text-purple-600 hover:text-purple-800"
                   >
                     ×
                   </button>
                 </span>
               )}
-              {activeFiltersCount > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-100"
-                >
-                  <svg
-                    className="w-3 h-3 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              {selectedSubjects.length > 0 && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                  📖 {selectedSubjects.length} Subject
+                  {selectedSubjects.length > 1 ? "s" : ""}
+                  <button
+                    onClick={() => setSelectedSubjects([])}
+                    className="ml-2 text-green-600 hover:text-green-800"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                  Clear filters
-                </button>
+                    ×
+                  </button>
+                </span>
               )}
             </div>
           )}
         </div>
 
         {/* Results Count */}
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600">
-            <span className="font-semibold text-gray-900">
+        <div className="mb-6">
+          <p className="text-gray-600 text-lg">
+            <span className="font-bold text-gray-900">
               {filteredExams.length}
             </span>{" "}
-            exam{filteredExams.length !== 1 ? "s" : ""} available
+            exam{filteredExams.length !== 1 ? "s" : ""} found
           </p>
         </div>
 
-        {/* Exam Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredExams.map((exam) => (
-            <ExamCard key={exam.id} exam={exam} />
-          ))}
-        </div>
+        {/* Exam Grid - 3 cards per row */}
+        {filteredExams.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredExams.map((exam) => (
+              <ExamCard key={exam.id} exam={exam} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-12 h-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No exams found
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Try adjusting your search or filters
+            </p>
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
 
         {/* Filter Drawer */}
         <FilterDrawer
@@ -822,11 +1007,23 @@ const LiveExamsPage = () => {
           onClose={() => setIsFilterOpen(false)}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
-          selectedSubCategory={selectedSubCategory}
-          setSelectedSubCategory={setSelectedSubCategory}
+          selectedTestType={selectedTestType}
+          setSelectedTestType={setSelectedTestType}
+          selectedSubjects={selectedSubjects}
+          setSelectedSubjects={setSelectedSubjects}
           categories={categories}
+          testTypes={testTypes}
+          subjects={subjects}
           activeFiltersCount={activeFiltersCount}
           clearFilters={clearFilters}
+        />
+
+        {/* Subjects Overlay */}
+        <SubjectsOverlay
+          isOpen={!!selectedExamForSubjects}
+          onClose={() => setSelectedExamForSubjects(null)}
+          subjects={selectedExamForSubjects?.subjects || []}
+          examTitle={selectedExamForSubjects?.title || ""}
         />
       </div>
     </div>

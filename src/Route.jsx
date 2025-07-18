@@ -20,6 +20,7 @@ import AddHSCOthers from "./Pages/AdminDashboard/hscOthers";
 import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
 import LiveExamsPage from "./Pages/LiveExam/liveExams";
 import AdminExamCreator from "./Pages/Admin/Exam-Creation/AdminExamCreator";
+import LiveExamInterface from "./Pages/LiveExamRoom";
 
 const router = createBrowserRouter([
   {
@@ -109,6 +110,10 @@ const router = createBrowserRouter([
       {
         path: "/admin/create-exam",
         element: <AdminExamCreator></AdminExamCreator>,
+      },
+      {
+        path: "/Exam/Room/Live",
+        element: <LiveExamInterface></LiveExamInterface>,
       },
     ],
   },
