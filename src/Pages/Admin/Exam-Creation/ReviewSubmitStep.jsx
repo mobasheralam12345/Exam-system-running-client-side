@@ -6,9 +6,14 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/outline";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const ReviewSubmitStep = ({ examData }) => {
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const totalQuestions = examData.subjects.reduce(
     (sum, subject) => sum + subject.questionCount,
@@ -115,6 +120,116 @@ const ReviewSubmitStep = ({ examData }) => {
       <span className="mt-0.5 font-semibold text-gray-800">{value}</span>
     </div>
   );
+
+  const handleSubmitExam = async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false); // Reset success state
+
+    try {
+      if (examData.examMode === "live") {
+        await handleLiveSubmit();
+      } else {
+        console.log(`${examData.examMode} exam - no submission action taken`);
+      }
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+      setSubmitError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLiveSubmit = async () => {
+    try {
+      // Prepare live exam specific data
+      const liveExamData = {
+        // Basic exam info
+        title: examData.title,
+        examType: examData.examType,
+        examMode: examData.examMode, // 'live'
+
+        // Live exam specific fields
+        duration: examData.duration, // in minutes
+        startTime: examData.startTime,
+        endTime: examData.startTime
+          ? new Date(
+              new Date(examData.startTime).getTime() + examData.duration * 60000
+            ).toISOString()
+          : null,
+        password: examData.password || null,
+        isPremium: examData.isPremium || false,
+
+        // Question data
+        subjects: examData.subjects.map((subject) => ({
+          name: subject.name,
+          questionCount: subject.questionCount,
+          questions:
+            subject.questions?.map((question) => ({
+              text: question.text,
+              options: question.options,
+              correctAnswer: question.correctAnswer,
+              explanation: question.explanation,
+              difficulty: question.difficulty, // For live exams
+            })) || [],
+        })),
+
+        // Metadata
+        createdAt: new Date().toISOString(),
+        status: "published",
+        totalQuestions: examData.subjects.reduce(
+          (sum, subject) => sum + subject.questionCount,
+          0
+        ),
+      };
+
+      const apiUrl = `${BACKEND_URL}/liveExam/create`;
+      console.log("Making request to:", apiUrl);
+      console.log("Request payload:", liveExamData);
+
+      // Make API call to live exam endpoint
+      const response = await fetch(apiUrl, {
+        // Fixed: Capital 'C'
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(liveExamData),
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+
+      if (!response.ok) {
+        // Try to get error details
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Parse JSON response directly (don't use .text() then .json())
+      const result = await response.json();
+      console.log("Live exam submitted successfully:", result);
+
+      setSubmitSuccess(true);
+
+      // Handle success - you can add redirect or success message here
+      return result;
+    } catch (error) {
+      console.error("Error in handleLiveSubmit:", error);
+      throw error; // Re-throw to be caught by handleSubmitExam
+    }
+  };
+
+  console.log(examData);
 
   return (
     <div className="space-y-6">
@@ -519,11 +634,69 @@ const ReviewSubmitStep = ({ examData }) => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center">
+            <XCircleIcon className="w-5 h-5 text-red-500 mr-2" />
+            <span className="text-red-800 font-medium">Submission Error:</span>
+          </div>
+          <p className="text-red-700 mt-1">{submitError}</p>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {submitSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center">
+            <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />
+            <span className="text-green-800 font-medium">Success!</span>
+          </div>
+          <p className="text-green-700 mt-1">
+            Live exam has been published successfully!
+          </p>
+        </div>
+      )}
+
       {/* Submit Button */}
       {isComplete && (
         <div className="text-center">
-          <button className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg">
-            🎯 Submit Exam for Publication
+          <button
+            onClick={handleSubmitExam}
+            disabled={isSubmitting}
+            className={`px-8 py-3 font-semibold rounded-lg transition-colors shadow-lg ${
+              isSubmitting
+                ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                : "bg-green-600 text-white hover:bg-green-700"
+            }`}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center">
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Submitting...
+              </span>
+            ) : (
+              "🎯 Submit Exam for Publication"
+            )}
           </button>
         </div>
       )}
