@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Add this import
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const FilterDrawer = ({
@@ -314,6 +315,7 @@ const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
 };
 
 const LiveExamsPage = () => {
+  const navigate = useNavigate(); // Add this hook
   const [searchCode, setSearchCode] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTestType, setSelectedTestType] = useState("all");
@@ -386,6 +388,7 @@ const LiveExamsPage = () => {
         }
         const data = await response.json();
         if (data.success) {
+          console.log(data);
           // Filter only BCS, HSC, Bank exams
           const filteredData = data.data.exams.filter((exam) =>
             ["BCS", "HSC", "Bank"].includes(exam.examType)
@@ -576,10 +579,11 @@ const LiveExamsPage = () => {
       alert(`Reminder set for: ${exam.title}`);
     };
 
+    // Updated handleEnterExam function
     const handleEnterExam = (e) => {
       e.preventDefault();
-      // Navigate to exam page
-      window.location.href = `/exam/${exam.id}`;
+      // Navigate to /exam/room/live with exam data
+      navigate("/exam/room/live", { state: { examData: exam } });
     };
 
     return (

@@ -21,6 +21,8 @@ import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
 import LiveExamsPage from "./Pages/LiveExam/liveExams";
 import AdminExamCreator from "./Pages/Admin/Exam-Creation/AdminExamCreator";
 import LiveExamInterface from "./Pages/LiveExamRoom";
+import ExamReview from "./Pages/ExamReview";
+import Profile from "./Pages/Profile";
 
 const router = createBrowserRouter([
   {
@@ -114,6 +116,18 @@ const router = createBrowserRouter([
       {
         path: "/Exam/Room/Live",
         element: <LiveExamInterface></LiveExamInterface>,
+      },
+      {
+        path: "/Exam/Review",
+        element: <ExamReview></ExamReview>,
+      },
+      {
+        path: "/Profile",
+        element: (
+          <PrivateRoute>
+            <Profile />
+          </PrivateRoute>
+        ),
       },
     ],
   },

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
-const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
+const LiveExamRoom = () => {
   // Exam State
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
@@ -20,6 +21,13 @@ const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
   const [completionReason, setCompletionReason] = useState("");
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [violationMessage, setViolationMessage] = useState("");
+  const [examStartTime, setExamStartTime] = useState(null);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [examData, setExamData] = useState(null);
+  const [userData, setUserData] = useState(null);
 
   const examContainerRef = useRef(null);
   const cursorTimeoutRef = useRef(null);
@@ -35,6 +43,19 @@ const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
 
     checkMobileDevice();
   }, []);
+  useEffect(() => {
+    // Get the exam data from navigation state
+    const passedExamData = location.state?.examData;
+
+    if (passedExamData) {
+      setExamData(passedExamData);
+      console.log("Received exam data:", passedExamData);
+    } else {
+      // Handle case where no data is passed (direct URL access)
+      console.warn("No exam data found. Redirecting...");
+      navigate("/live-exams"); // Redirect back to live exams page
+    }
+  }, [location.state, navigate]);
 
   // Mock data - same as before
   const mockExamData = {
@@ -168,8 +189,37 @@ const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
 
   // Initialize timer
   useEffect(() => {
-    if (examStarted) {
-      setTimeLeft(currentExam.duration * 60);
+    if (examStarted && currentExam) {
+      // Calculate actual remaining time for live exam
+      const calculateRemainingTime = () => {
+        const now = new Date();
+        const examStartTime = new Date(currentExam.startTime);
+        const examEndTime = new Date(currentExam.endTime);
+
+        // Check if exam hasn't started yet
+        if (now < examStartTime) {
+          console.log("Exam hasn't started yet");
+          return 0;
+        }
+
+        // Check if exam has already ended
+        if (now >= examEndTime) {
+          console.log("Exam has ended");
+          return 0;
+        }
+
+        // Calculate remaining time in milliseconds
+        const remainingTimeMs = examEndTime - now;
+
+        // Convert to seconds and ensure it's not negative
+        return Math.max(0, Math.floor(remainingTimeMs / 1000));
+      };
+
+      // Set the actual remaining time
+      const remainingTime = calculateRemainingTime();
+      setTimeLeft(remainingTime);
+
+      // Handle mouse movement for desktop
       if (!isMobileDevice) {
         showCursor();
         document.addEventListener("mousemove", handleMouseMove);
@@ -182,7 +232,13 @@ const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
         }
       };
     }
-  }, [examStarted, currentExam.duration, isMobileDevice]);
+  }, [
+    examStarted,
+    currentExam?.startTime,
+    currentExam?.endTime,
+    currentExam?.duration,
+    isMobileDevice,
+  ]);
 
   // Countdown timer
   useEffect(() => {
@@ -392,16 +448,6 @@ const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
     }
   };
 
-  // Start exam
-  const handleStartExam = async () => {
-    if (!consentChecked) return;
-
-    setShowConsent(false);
-    await enterFullscreen();
-    setExamStarted(true);
-    markQuestionVisited(0, 0);
-  };
-
   // All other functions remain the same...
   const markQuestionVisited = (subjectIndex, questionIndex) => {
     const questionKey = `${subjectIndex}-${questionIndex}`;
@@ -487,26 +533,227 @@ const LiveExamRoom = ({ examData, userData, onExamSubmit, onViolation }) => {
     }
   };
 
-  const handleAutoSubmit = (reason = "time_up") => {
-    const submissionData = {
-      examId: currentExam._id,
-      answers,
-      timeSpent: currentExam.duration * 60 - timeLeft,
-      reason,
-      device: isMobileDevice ? "mobile" : "desktop",
-      timestamp: new Date().toISOString(),
+  // Default user data if none provided
+  const defaultUserData = {
+    _id: "guest_" + Date.now(),
+    username: "Guest User",
+    email: "guest@example.com",
+  };
+
+  // Enhanced score calculation function
+  const calculateScore = () => {
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    let totalSkipped = 0;
+    let totalScore = 0;
+    const questionDetails = [];
+
+    currentExam.subjects.forEach((subject, subjectIndex) => {
+      subject.questions.forEach((question, questionIndex) => {
+        const questionKey = `${subjectIndex}-${questionIndex}`;
+        const userAnswer = answers[questionKey];
+        const correctAnswer = question.correctAnswer;
+
+        let isCorrect = false;
+        let isSkipped = userAnswer === undefined;
+        let isWrong = false;
+
+        if (!isSkipped) {
+          isCorrect = userAnswer === correctAnswer;
+          isWrong = !isCorrect;
+        }
+
+        // Update counters
+        if (isCorrect) {
+          totalCorrect++;
+          totalScore += question.marks || 1; // Use question marks or default to 1
+        } else if (isWrong) {
+          totalWrong++;
+          totalScore -= question.negativeMarks || 0; // Subtract negative marks
+        } else {
+          totalSkipped++;
+        }
+
+        // Store question details for submission
+        questionDetails.push({
+          subjectIndex,
+          questionIndex,
+          questionId: question._id || `q_${subjectIndex}_${questionIndex}`,
+          subjectName: subject.name,
+          userAnswer: userAnswer,
+          correctAnswer: correctAnswer,
+          isCorrect,
+          isSkipped,
+          marks: question.marks || 1,
+          negativeMarks: question.negativeMarks || 0,
+          scoreContribution: isCorrect
+            ? question.marks || 1
+            : isWrong
+            ? -(question.negativeMarks || 0)
+            : 0,
+        });
+      });
+    });
+
+    return {
+      totalScore,
+      totalCorrect,
+      totalWrong,
+      totalSkipped,
+      totalQuestions: getTotalQuestions(),
+      questionDetails,
+      percentage: ((totalCorrect / getTotalQuestions()) * 100).toFixed(2),
     };
+  };
 
-    setExamCompleted(true);
-    setCompletionReason(reason);
+  // API call to submit exam results
+  const submitExamResults = async (submissionData) => {
+    try {
+      setSubmissionLoading(true);
 
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
+      // const response = await fetch("/api/exam-submissions", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     // Add authorization header if needed
+      //     // 'Authorization': `Bearer ${token}`
+      //   },
+      //   body: JSON.stringify(submissionData),
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(`HTTP error! status: ${response.status}`);
+      // }
+
+      // const result = await response.json();
+      // console.log("Exam submitted successfully:", result);
+
+      // // Navigate to results page with submission data
+      navigate("/Exam/Review", {
+        state: {
+          examData: currentExam,
+          results: submissionData,
+          //submissionId: result.submissionId,
+          submissionId: "1122",
+        },
+      });
+      return;
+      //return result;
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+      // You might want to show an error message to the user
+      alert("Failed to submit exam. Please try again.");
+      throw error;
+    } finally {
+      setSubmissionLoading(false);
     }
+  };
 
-    document.body.style.cursor = "default";
+  // Enhanced auto submit with score calculation and API storage
+  const handleAutoSubmit = async (reason = "time_up") => {
+    try {
+      // Calculate time consumed
+      const timeConsumed = examStartTime
+        ? Math.floor((Date.now() - examStartTime) / 1000)
+        : currentExam.duration * 60 - timeLeft;
 
-    onExamSubmit && onExamSubmit(submissionData);
+      // Calculate scores and get detailed results
+      const scoreResults = calculateScore();
+
+      // Prepare comprehensive submission data
+      const submissionData = {
+        // Exam and User Information
+        examId: currentExam._id,
+        examTitle: currentExam.title,
+        userId: currentUser._id,
+        username: currentUser.username,
+        userEmail: currentUser.email || "",
+
+        // Timing Information
+        examDuration: currentExam.duration * 60, // in seconds
+        timeConsumed: timeConsumed,
+        timeRemaining: timeLeft,
+        submissionTime: new Date().toISOString(),
+        startTime: examStartTime,
+
+        // Score Information
+        totalScore: scoreResults.totalScore,
+        totalCorrect: scoreResults.totalCorrect,
+        totalWrong: scoreResults.totalWrong,
+        totalSkipped: scoreResults.totalSkipped,
+        totalQuestions: scoreResults.totalQuestions,
+        percentage: scoreResults.percentage,
+
+        // Detailed Answers
+        answers: answers, // Original answers object
+        questionDetails: scoreResults.questionDetails, // Detailed analysis
+
+        // Exam Completion Information
+        completionReason: reason,
+        device: isMobileDevice ? "mobile" : "desktop",
+        isExpelled: reason === "expelled",
+
+        // Additional Metadata
+        reviewMarkedQuestions: Array.from(reviewMarked),
+        visitedQuestions: Array.from(visitedQuestions),
+        violations: [], // You can track violations here if needed
+
+        // Subject-wise breakdown
+        subjectWiseResults: currentExam.subjects.map((subject, index) => {
+          const subjectQuestions = scoreResults.questionDetails.filter(
+            (q) => q.subjectIndex === index
+          );
+          return {
+            subjectName: subject.name,
+            totalQuestions: subjectQuestions.length,
+            correct: subjectQuestions.filter((q) => q.isCorrect).length,
+            wrong: subjectQuestions.filter((q) => !q.isCorrect && !q.isSkipped)
+              .length,
+            skipped: subjectQuestions.filter((q) => q.isSkipped).length,
+            score: subjectQuestions.reduce(
+              (sum, q) => sum + q.scoreContribution,
+              0
+            ),
+          };
+        }),
+      };
+
+      console.log("Submission Data:", submissionData);
+
+      // Set exam as completed
+      setExamCompleted(true);
+      setCompletionReason(reason);
+
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      document.body.style.cursor = "default";
+
+      // Submit to API
+      submitExamResults(submissionData);
+
+      // Call parent callback if provided
+      if (typeof onExamSubmit === "function") {
+        onExamSubmit(submissionData);
+      }
+    } catch (error) {
+      console.error("Error in handleAutoSubmit:", error);
+      // Even if API fails, mark exam as completed
+      setExamCompleted(true);
+      setCompletionReason(reason);
+    }
+  };
+
+  // Enhanced start exam with timing
+  const handleStartExam = async () => {
+    if (!consentChecked) return;
+
+    setShowConsent(false);
+    await enterFullscreen();
+    setExamStarted(true);
+    setExamStartTime(Date.now()); // Record start time
+    markQuestionVisited(0, 0);
   };
 
   const handleManualSubmit = () => {
