@@ -1,4 +1,8 @@
 import React, { useState, useReducer, useEffect } from "react";
+import axios from "axios";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
+
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -11,6 +15,8 @@ import ExamSetupStep from "./ExamSetupStep";
 import SubjectSelectionStep from "./SubjectSelectionStep";
 import QuestionEntryStep from "./QuestionEntryStep";
 import ReviewSubmitStep from "./ReviewSubmitStep";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 // Initial state for the exam
 const initialExamState = {
@@ -37,6 +43,7 @@ const initialExamState = {
 
   //HSC specific
   hscGroup: "",
+  hscBoard: "",
 };
 
 // Custom Alert Modal Component
@@ -110,6 +117,8 @@ const examReducer = (state, action) => {
       return { ...state, examType: action.payload };
     case "SET_HSC_GROUP":
       return { ...state, hscGroup: action.payload };
+    case "SET_HSC_BOARD":
+      return { ...state, hscBoard: action.payload };
     case "SET_DURATION":
       return { ...state, duration: action.payload };
     case "SET_START_TIME":
@@ -120,8 +129,8 @@ const examReducer = (state, action) => {
       return { ...state, isPremium: action.payload };
     case "SET_EXAM_YEAR":
       return { ...state, examYear: action.payload };
-    case "SET_SESSION":
-      return { ...state, session: action.payload };
+    case "SET_BATCH":
+      return { ...state, batch: action.payload };
     case "SET_PRACTICE_TYPE":
       return { ...state, practiceType: action.payload };
     case "SET_SHOW_RESULTS":
@@ -308,7 +317,70 @@ const AdminExamCreator = () => {
     setShowClearCacheAlert(false);
   };
 
-  const handleNext = () => {
+  const [loading, setLoading] = useState(false); // Add this at the top of your component
+
+  const checkDuplicateBeforeNext = async () => {
+    try {
+      if (examData.examMode !== "previous") return true;
+
+      const routePrefix = examData.examType
+        ? examData.examType.toLowerCase()
+        : "";
+      const apiUrl = `${BACKEND_URL}/${routePrefix}-questions/check-duplicate`;
+      console.log("api: ", apiUrl);
+
+      const params = (() => {
+        if (examData.examType === "BCS") {
+          return { batch: examData.batch };
+        } else if (examData.examType === "HSC") {
+          return {
+            examYear: examData.examYear,
+            hscGroup: examData.hscGroup,
+            hscBoard: examData.hscBoard,
+          };
+        } else if (examData.examType === "Bank") {
+          return { examYear: examData.examYear };
+        }
+      })();
+
+      const response = await axios.get(apiUrl, { params });
+
+      if (response.data.exists) {
+        Swal.fire({
+          title: "Warning",
+          text: response.data.message || "This exam already exists!",
+          icon: "warning",
+          confirmButtonText: "OK",
+          customClass: {
+            confirmButton:
+              "bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded",
+          },
+        });
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to check duplicates",
+        icon: "error",
+      });
+      return false;
+    }
+  };
+
+  const handleNext = async () => {
+    // Only check duplicates when moving from step 1 to step 2
+    if (currentStep === 1) {
+      setLoading(true); // Start loading
+      const canProceed = await checkDuplicateBeforeNext();
+      setLoading(false); // Stop loading
+
+      if (!canProceed) return; // Stop if duplicate exists
+    }
+
     if (currentStep === 4) {
       handleSubmit();
     } else {
@@ -377,190 +449,205 @@ const AdminExamCreator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 sm:py-8">
-      <div className="max-w-7xl pt-4 mx-auto">
-        {/* Custom Alert Modals */}
-        <CustomAlert
-          isOpen={showClearCacheAlert}
-          onClose={() => setShowClearCacheAlert(false)}
-          onConfirm={confirmClearCache}
-          title="Clear All Progress"
-          message="This will permanently delete all saved exam data and return you to the beginning. This action cannot be undone."
-          type="warning"
-        />
+    <div>
+      <div className="min-h-screen bg-gray-50 sm:py-8">
+        <div className="max-w-7xl pt-4 mx-auto">
+          {/* Custom Alert Modals */}
+          <CustomAlert
+            isOpen={showClearCacheAlert}
+            onClose={() => setShowClearCacheAlert(false)}
+            onConfirm={confirmClearCache}
+            title="Clear All Progress"
+            message="This will permanently delete all saved exam data and return you to the beginning. This action cannot be undone."
+            type="warning"
+          />
 
-        <CustomAlert
-          isOpen={showResetSubjectsAlert}
-          onClose={() => setShowResetSubjectsAlert(false)}
-          onConfirm={confirmResetToSubjects}
-          title="Reset to Subjects"
-          message="Going back to subjects will permanently delete all questions and progress from the current exam. You will need to re-enter all questions. Are you sure you want to continue?"
-          type="warning"
-        />
+          <CustomAlert
+            isOpen={showResetSubjectsAlert}
+            onClose={() => setShowResetSubjectsAlert(false)}
+            onConfirm={confirmResetToSubjects}
+            title="Reset to Subjects"
+            message="Going back to subjects will permanently delete all questions and progress from the current exam. You will need to re-enter all questions. Are you sure you want to continue?"
+            type="warning"
+          />
 
-        {/* Admin Instructions */}
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div>
-                <h3 className="text-sm font-medium text-blue-800">
-                  Dynamic Exam Creator
-                </h3>
-                <p className="text-xs text-blue-600 mt-1">
-                  Create Live Exams, Previous Year Papers, or Practice Tests
-                  with mathematical symbols support. Progress is automatically
-                  saved.
-                </p>
-              </div>
-            </div>
-
-            {/* Clear Cache Button with subtle styling */}
-            <button
-              onClick={() => setShowClearCacheAlert(true)}
-              className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-md hover:bg-orange-200 transition-colors"
-            >
-              Clear Cache
-            </button>
-          </div>
-        </div>
-
-        {/* Back to Subjects Option (Step 3+) with subtle styling */}
-        {currentStep >= 3 && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          {/* Admin Instructions */}
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 mr-2" />
-                <span className="text-sm text-amber-800">
-                  Need to modify subjects or question counts?
-                </span>
+                <svg
+                  className="w-5 h-5 text-blue-600 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-medium text-blue-800">
+                    Dynamic Exam Creator
+                  </h3>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Create Live Exams, Previous Year Papers, or Practice Tests
+                    with mathematical symbols support. Progress is automatically
+                    saved.
+                  </p>
+                </div>
               </div>
+
+              {/* Clear Cache Button with subtle styling */}
               <button
-                onClick={() => setShowResetSubjectsAlert(true)}
-                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors"
+                onClick={() => setShowClearCacheAlert(true)}
+                className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-md hover:bg-orange-200 transition-colors"
               >
-                ↩ Back to Subjects
+                Clear Cache
               </button>
             </div>
           </div>
-        )}
 
-        {/* Progress Stepper */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-between overflow-x-auto pb-2">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center flex-shrink-0">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${
-                    currentStep >= index
-                      ? "bg-blue-600 border-blue-600 text-white"
-                      : "border-gray-300 text-gray-400"
-                  }`}
-                >
-                  {currentStep > index ? (
-                    <CheckCircleIcon className="w-4 h-4 sm:w-6 sm:h-6" />
-                  ) : (
-                    <span className="text-xs sm:text-sm font-medium">
-                      {index + 1}
-                    </span>
-                  )}
+          {/* Back to Subjects Option (Step 3+) with subtle styling */}
+          {currentStep >= 3 && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 mr-2" />
+                  <span className="text-sm text-amber-800">
+                    Need to modify subjects or question counts?
+                  </span>
                 </div>
-                <div className="ml-2 sm:ml-4 min-w-0 hidden sm:block">
-                  <p
-                    className={`text-xs sm:text-sm font-medium ${
-                      currentStep >= index ? "text-blue-600" : "text-gray-500"
+                <button
+                  onClick={() => setShowResetSubjectsAlert(true)}
+                  className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors"
+                >
+                  ↩ Back to Subjects
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Progress Stepper */}
+          <div className="mb-6 sm:mb-8">
+            <div className="flex items-center justify-between overflow-x-auto pb-2">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex items-center flex-shrink-0">
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${
+                      currentStep >= index
+                        ? "bg-blue-600 border-blue-600 text-white"
+                        : "border-gray-300 text-gray-400"
                     }`}
                   >
-                    {step.title}
-                  </p>
-                  <p className="text-xs text-gray-500 hidden md:block">
-                    {step.description}
-                  </p>
+                    {currentStep > index ? (
+                      <CheckCircleIcon className="w-4 h-4 sm:w-6 sm:h-6" />
+                    ) : (
+                      <span className="text-xs sm:text-sm font-medium">
+                        {index + 1}
+                      </span>
+                    )}
+                  </div>
+                  <div className="ml-2 sm:ml-4 min-w-0 hidden sm:block">
+                    <p
+                      className={`text-xs sm:text-sm font-medium ${
+                        currentStep >= index ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      {step.title}
+                    </p>
+                    <p className="text-xs text-gray-500 hidden md:block">
+                      {step.description}
+                    </p>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className={`flex-1 h-0.5 mx-2 sm:mx-4 min-w-[20px] ${
+                        currentStep > index ? "bg-blue-600" : "bg-gray-300"
+                      }`}
+                    />
+                  )}
                 </div>
-                {index < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-0.5 mx-2 sm:mx-4 min-w-[20px] ${
-                      currentStep > index ? "bg-blue-600" : "bg-gray-300"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Step Content */}
-        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-          {currentStep === 0 && (
-            <ExamModeSelectionStep
-              examData={examData}
-              setExamData={setExamData}
-            />
-          )}
-          {currentStep === 1 && (
-            <ExamSetupStep examData={examData} setExamData={setExamData} />
-          )}
-          {currentStep === 2 && (
-            <SubjectSelectionStep
-              examData={examData}
-              setExamData={setExamData}
-            />
-          )}
-          {currentStep === 3 && (
-            <QuestionEntryStep examData={examData} setExamData={setExamData} />
-          )}
-          {currentStep === 4 && (
-            <ReviewSubmitStep examData={examData} setExamData={setExamData} />
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between mt-4 sm:mt-6">
-          <button
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-            className="flex items-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeftIcon className="w-4 h-4 mr-1 sm:mr-2" />
-            Previous
-          </button>
-
-          <div className="flex items-center space-x-3">
-            {/* Debug info */}
-            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              Step {currentStep + 1}/5 | Valid:{" "}
-              {isStepValid(currentStep, examData) ? "✅" : "❌"}
+              ))}
             </div>
+          </div>
 
+          {/* Step Content */}
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            {currentStep === 0 && (
+              <ExamModeSelectionStep
+                examData={examData}
+                setExamData={setExamData}
+              />
+            )}
+            {currentStep === 1 && (
+              <ExamSetupStep examData={examData} setExamData={setExamData} />
+            )}
+            {currentStep === 2 && (
+              <SubjectSelectionStep
+                examData={examData}
+                setExamData={setExamData}
+              />
+            )}
+            {currentStep === 3 && (
+              <QuestionEntryStep
+                examData={examData}
+                setExamData={setExamData}
+              />
+            )}
+            {currentStep === 4 && (
+              <ReviewSubmitStep
+                examData={examData}
+                setExamData={setExamData}
+                setCurrentStep={setCurrentStep} // Pass it here
+              />
+            )}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-4 sm:mt-6">
             <button
-              onClick={handleNext}
-              disabled={
-                !isStepValid(currentStep, examData) || currentStep === 4
-              }
-              className={`flex items-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium border border-transparent rounded-md transition-colors ${
-                isStepValid(currentStep, examData) && currentStep !== 4
-                  ? "text-white bg-blue-600 hover:bg-blue-700"
-                  : "text-gray-400 bg-gray-300 cursor-not-allowed"
-              }`}
+              onClick={handlePrev}
+              disabled={currentStep === 0}
+              className="flex items-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {currentStep === 4 ? "Create Exam" : "Next"}
-              {currentStep !== 4 && (
-                <ChevronRightIcon className="w-4 h-4 ml-1 sm:ml-2" />
-              )}
+              <ChevronLeftIcon className="w-4 h-4 mr-1 sm:mr-2" />
+              Previous
             </button>
+
+            <div className="flex items-center space-x-3">
+              {/* Debug info */}
+              <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                Step {currentStep + 1}/5 | Valid:{" "}
+                {isStepValid(currentStep, examData) ? "✅" : "❌"}
+              </div>
+
+              <button
+                onClick={handleNext}
+                disabled={
+                  !isStepValid(currentStep, examData) || currentStep === 4
+                }
+                className={`flex items-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium border border-transparent rounded-md transition-colors ${
+                  isStepValid(currentStep, examData) && currentStep !== 4
+                    ? "text-white bg-blue-600 hover:bg-blue-700"
+                    : "text-gray-400 bg-gray-300 cursor-not-allowed"
+                }`}
+              >
+                {currentStep === 4 ? "Create Exam" : "Next"}
+                {currentStep !== 4 && (
+                  <ChevronRightIcon className="w-4 h-4 ml-1 sm:ml-2" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="loader border-4 border-blue-500 border-t-transparent rounded-full w-12 h-12 animate-spin"></div>
+        </div>
+      )}
     </div>
   );
 };

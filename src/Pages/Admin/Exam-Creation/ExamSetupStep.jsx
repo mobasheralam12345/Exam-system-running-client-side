@@ -1,13 +1,50 @@
 import React from "react";
 
 const ExamSetupStep = ({ examData, setExamData }) => {
-  const examTypes = ["BCS", "HSC", "Bank", "University", "Job"];
+  const examTypes = ["BCS", "HSC", "Bank"];
   const hscGroups = ["Science", "Business Studies", "Humanities"];
+  const hscBoards = [
+    "Barisal",
+    "Chittagong",
+    "Comilla",
+    "Dhaka",
+    "Dinajpur",
+    "Jessore",
+    "Mymensingh",
+    "Rajshahi",
+    "Sylhet",
+  ];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 20 }, (_, i) => currentYear - i);
+  const batches = Array.from({ length: 50 }, (_, i) => 50 - i);
 
-  const renderLiveExamFields = () => (
+  const handleChange = (type, value) => {
+    console.log(`${type} changed:`, value);
+    setExamData({ type, payload: value });
+  };
+
+  const renderLiveFields = () => (
     <>
+      {/* HSC Group (only if exam type is HSC) */}
+      {examData.examType === "HSC" && (
+        <div className="col-span-1 sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            HSC Group *
+          </label>
+          <select
+            value={examData.hscGroup || ""}
+            onChange={(e) => handleChange("SET_HSC_GROUP", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select HSC group</option>
+            {hscGroups.map((group) => (
+              <option key={group} value={group}>
+                {group}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="col-span-1 sm:col-span-2">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Start Date & Time *
@@ -16,14 +53,19 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           type="datetime-local"
           value={examData.startTime || ""}
           onChange={(e) => {
-            console.log("Start time changed:", e.target.value);
-            setExamData({ type: "SET_START_TIME", payload: e.target.value });
+            const selectedTime = new Date(e.target.value);
+            const now = new Date();
+            if (selectedTime < now) {
+              alert("Start time cannot be in the past!");
+              return;
+            }
+            handleChange("SET_START_TIME", e.target.value);
           }}
           min={new Date().toISOString().slice(0, 16)}
           className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Select when the exam should start
+          Select a future date and time for the exam to start
         </p>
       </div>
 
@@ -34,11 +76,9 @@ const ExamSetupStep = ({ examData, setExamData }) => {
         <input
           type="number"
           value={examData.duration || ""}
-          onChange={(e) => {
-            const value = parseInt(e.target.value) || 0;
-            console.log("Duration changed:", value);
-            setExamData({ type: "SET_DURATION", payload: value });
-          }}
+          onChange={(e) =>
+            handleChange("SET_DURATION", parseInt(e.target.value) || 0)
+          }
           min="1"
           max="600"
           placeholder="Enter duration in minutes"
@@ -56,87 +96,110 @@ const ExamSetupStep = ({ examData, setExamData }) => {
         <input
           type="text"
           value={examData.password || ""}
-          onChange={(e) =>
-            setExamData({ type: "SET_PASSWORD", payload: e.target.value })
-          }
+          onChange={(e) => handleChange("SET_PASSWORD", e.target.value)}
           placeholder="Leave empty for no password"
           className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
-      {/* Premium/Free as Radio Buttons */}
       <div className="col-span-1 sm:col-span-2">
         <label className="block text-sm font-medium text-gray-700 mb-3">
           Access Type *
         </label>
         <div className="space-y-3">
-          <div className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-            <input
-              type="radio"
-              id="free"
-              name="accessType"
-              checked={!examData.isPremium}
-              onChange={() => {
-                console.log("Access type changed to: Free");
-                setExamData({ type: "SET_PREMIUM", payload: false });
-              }}
-              className="h-4 w-4 text-blue-600 text-black bg-gray-50 focus:ring-blue-500 border-gray-300"
-            />
-            <label
-              htmlFor="free"
-              className="ml-3 flex items-center text-sm text-gray-700 cursor-pointer"
+          {[
+            {
+              id: "free",
+              label: "Free Access",
+              desc: "Available to all users",
+              value: false,
+              icon: "🆓",
+            },
+            {
+              id: "premium",
+              label: "Premium Only",
+              desc: "Only premium subscribers can access",
+              value: true,
+              icon: "👑",
+            },
+          ].map((option) => (
+            <div
+              key={option.id}
+              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <span className="text-lg mr-2">🆓</span>
-              <div>
-                <div className="font-medium">Free Access</div>
-                <div className="text-xs text-gray-500">
-                  Available to all users
+              <input
+                type="radio"
+                id={option.id}
+                name="accessType"
+                checked={examData.isPremium === option.value}
+                onChange={() => handleChange("SET_PREMIUM", option.value)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+              />
+              <label
+                htmlFor={option.id}
+                className="ml-3 flex items-center text-sm text-gray-700 cursor-pointer"
+              >
+                <span className="text-lg mr-2">{option.icon}</span>
+                <div>
+                  <div className="font-medium">{option.label}</div>
+                  <div className="text-xs text-gray-500">{option.desc}</div>
                 </div>
-              </div>
-            </label>
-          </div>
-          <div className="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-            <input
-              type="radio"
-              id="premium"
-              name="accessType"
-              checked={examData.isPremium}
-              onChange={() => {
-                console.log("Access type changed to: Premium");
-                setExamData({ type: "SET_PREMIUM", payload: true });
-              }}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-            />
-            <label
-              htmlFor="premium"
-              className="ml-3 flex items-center text-sm text-gray-700 cursor-pointer"
-            >
-              <span className="text-lg mr-2">👑</span>
-              <div>
-                <div className="font-medium">Premium Only</div>
-                <div className="text-xs text-gray-500">
-                  Only premium subscribers can access
-                </div>
-              </div>
-            </label>
-          </div>
+              </label>
+            </div>
+          ))}
         </div>
       </div>
     </>
   );
 
-  const renderPreviousYearFields = () => (
+  const renderPreviousFields = () => (
     <>
+      {examData.examType === "HSC" && (
+        <>
+          <div className="col-span-1 sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              HSC Group *
+            </label>
+            <select
+              value={examData.hscGroup || ""}
+              onChange={(e) => handleChange("SET_HSC_GROUP", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select HSC group</option>
+              {hscGroups.map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-span-1 sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              HSC Board *
+            </label>
+            <select
+              value={examData.hscBoard || ""}
+              onChange={(e) => handleChange("SET_HSC_BOARD", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select HSC board</option>
+              {hscBoards.map((board) => (
+                <option key={board} value={board}>
+                  {board}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
       <div className="col-span-1 sm:col-span-2">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Exam Year *
         </label>
         <select
           value={examData.examYear || ""}
-          onChange={(e) => {
-            console.log("Exam year changed:", e.target.value);
-            setExamData({ type: "SET_EXAM_YEAR", payload: e.target.value });
-          }}
+          onChange={(e) => handleChange("SET_EXAM_YEAR", e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">Select year</option>
@@ -147,21 +210,25 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           ))}
         </select>
       </div>
-
-      <div className="col-span-1 sm:col-span-2">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Session/Batch (Optional)
-        </label>
-        <input
-          type="text"
-          value={examData.session || ""}
-          onChange={(e) =>
-            setExamData({ type: "SET_SESSION", payload: e.target.value })
-          }
-          placeholder="e.g., 43rd BCS, HSC 2023"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
+      {examData.examType === "BCS" && (
+        <div className="col-span-1 sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Exam Batch *
+          </label>
+          <select
+            value={examData.batch || ""}
+            onChange={(e) => handleChange("SET_BATCH", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select Batch</option>
+            {Array.from({ length: 50 }, (_, i) => 50 - i).map((batch) => (
+              <option key={batch} value={batch}>
+                {batch}th Batch
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </>
   );
 
@@ -174,10 +241,9 @@ const ExamSetupStep = ({ examData, setExamData }) => {
         <input
           type="number"
           value={examData.duration || ""}
-          onChange={(e) => {
-            const value = parseInt(e.target.value) || 0;
-            setExamData({ type: "SET_DURATION", payload: value });
-          }}
+          onChange={(e) =>
+            handleChange("SET_DURATION", parseInt(e.target.value) || 0)
+          }
           min="1"
           placeholder="Leave empty for unlimited"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -190,9 +256,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
         </label>
         <select
           value={examData.practiceType || "unlimited"}
-          onChange={(e) =>
-            setExamData({ type: "SET_PRACTICE_TYPE", payload: e.target.value })
-          }
+          onChange={(e) => handleChange("SET_PRACTICE_TYPE", e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="unlimited">Unlimited Attempts</option>
@@ -207,12 +271,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
             type="checkbox"
             id="showResults"
             checked={examData.showResults || false}
-            onChange={(e) =>
-              setExamData({
-                type: "SET_SHOW_RESULTS",
-                payload: e.target.checked,
-              })
-            }
+            onChange={(e) => handleChange("SET_SHOW_RESULTS", e.target.checked)}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <label
@@ -248,7 +307,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Common Fields */}
+        {/* Exam Title */}
         <div className="col-span-1 sm:col-span-2 lg:col-span-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Exam Title *
@@ -256,10 +315,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           <input
             type="text"
             value={examData.title || ""}
-            onChange={(e) => {
-              console.log("Title changed:", e.target.value);
-              setExamData({ type: "SET_TITLE", payload: e.target.value });
-            }}
+            onChange={(e) => handleChange("SET_TITLE", e.target.value)}
             placeholder={
               examData.examMode === "live"
                 ? "e.g., BCS Preliminary Live Test 2024"
@@ -271,6 +327,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           />
         </div>
 
+        {/* Exam Type */}
         <div className="col-span-1 sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Exam Type *
@@ -278,12 +335,8 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           <select
             value={examData.examType || ""}
             onChange={(e) => {
-              console.log("Exam type changed:", e.target.value);
-              setExamData({ type: "SET_EXAM_TYPE", payload: e.target.value });
-              // Clear HSC group when exam type changes
-              if (e.target.value !== "HSC") {
-                setExamData({ type: "SET_HSC_GROUP", payload: "" });
-              }
+              handleChange("SET_EXAM_TYPE", e.target.value);
+              if (e.target.value !== "HSC") handleChange("SET_HSC_GROUP", "");
             }}
             className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
@@ -296,36 +349,9 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           </select>
         </div>
 
-        {/* HSC Group Field - Only show when HSC is selected */}
-        {examData.examType === "HSC" && (
-          <div className="col-span-1 sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              HSC Group *
-            </label>
-            <select
-              value={examData.hscGroup || ""}
-              onChange={(e) => {
-                console.log("HSC group changed:", e.target.value);
-                setExamData({ type: "SET_HSC_GROUP", payload: e.target.value });
-              }}
-              className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select HSC group</option>
-              {hscGroups.map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Select the HSC group for this exam
-            </p>
-          </div>
-        )}
-
         {/* Mode-specific fields */}
-        {examData.examMode === "live" && renderLiveExamFields()}
-        {examData.examMode === "previous" && renderPreviousYearFields()}
+        {examData.examMode === "live" && renderLiveFields()}
+        {examData.examMode === "previous" && renderPreviousFields()}
         {examData.examMode === "practice" && renderPracticeFields()}
       </div>
     </div>

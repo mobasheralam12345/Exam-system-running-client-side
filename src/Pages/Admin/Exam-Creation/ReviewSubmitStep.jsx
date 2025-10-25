@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -8,12 +9,18 @@ import {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-const ReviewSubmitStep = ({ examData }) => {
+const ReviewSubmitStep = ({ examData, setExamData, setCurrentStep }) => {
+  // ---------- State ----------
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // ---------- Derived ----------
+  const currentSubject = examData.subjects[currentSubjectIndex];
+  const currentQuestion = currentSubject?.questions?.[currentQuestionIndex];
+  const hasQuestions = currentSubject?.questions?.length > 0;
 
   const totalQuestions = examData.subjects.reduce(
     (sum, subject) => sum + subject.questionCount,
@@ -25,10 +32,7 @@ const ReviewSubmitStep = ({ examData }) => {
   );
   const isComplete = completedQuestions === totalQuestions;
 
-  const currentSubject = examData.subjects[currentSubjectIndex];
-  const currentQuestion = currentSubject?.questions?.[currentQuestionIndex];
-  const hasQuestions = currentSubject?.questions?.length > 0;
-
+  // ---------- UI Helpers ----------
   const getModeIcon = (mode) => {
     switch (mode) {
       case "live":
@@ -55,7 +59,6 @@ const ReviewSubmitStep = ({ examData }) => {
     }
   };
 
-  // Calculate end time based on start time and duration
   const getEndTime = () => {
     if (examData.startTime && examData.duration) {
       const startTime = new Date(examData.startTime);
@@ -65,7 +68,16 @@ const ReviewSubmitStep = ({ examData }) => {
     return "Will be calculated";
   };
 
-  // Navigation functions
+  const InfoCard = ({ label, value }) => (
+    <div className="flex flex-col rounded-lg bg-white/60 p-4 shadow-inner">
+      <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </span>
+      <span className="mt-0.5 font-semibold text-gray-800">{value}</span>
+    </div>
+  );
+
+  // ---------- Navigation ----------
   const nextSubject = () => {
     if (currentSubjectIndex < examData.subjects.length - 1) {
       setCurrentSubjectIndex(currentSubjectIndex + 1);
@@ -111,126 +123,206 @@ const ReviewSubmitStep = ({ examData }) => {
     setCurrentQuestionIndex(0);
   };
 
-  // Helper component for exam details
-  const InfoCard = ({ label, value }) => (
-    <div className="flex flex-col rounded-lg bg-white/60 p-4 shadow-inner">
-      <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </span>
-      <span className="mt-0.5 font-semibold text-gray-800">{value}</span>
-    </div>
-  );
+  // ---------- Payload Builders ----------
+  const prepareLiveExamPayload = (data) => ({
+    title: data.title,
+    examType: data.examType,
+    examMode: "live",
+    duration: data.duration,
+    startTime: data.startTime,
+    endTime: data.startTime
+      ? new Date(
+          new Date(data.startTime).getTime() + data.duration * 60000
+        ).toISOString()
+      : null,
+    password: data.password || null,
+    isPremium: data.isPremium || false,
+    subjects: data.subjects.map((s) => ({
+      name: s.name,
+      questionCount: s.questionCount,
+      questions:
+        s.questions?.map((q) => ({
+          text: q.text,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+        })) || [],
+    })),
+    status: "published",
+    totalQuestions: data.subjects.reduce((sum, s) => sum + s.questionCount, 0),
+  });
 
+  const preparePreviousExamPayload = (data) => {
+    const payload = {
+      title: data.title,
+      examType: data.examType,
+      examMode: "previous",
+      examYear: data.examYear,
+      subjects: data.subjects.map((s) => ({
+        name: s.name,
+        questionCount: s.questionCount,
+        questions:
+          s.questions?.map((q) => ({
+            text: q.text,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+          })) || [],
+      })),
+    };
+
+    // Include hscGroup only for HSC
+    if (data.examType === "HSC" && data.hscGroup) {
+      payload.hscGroup = data.hscGroup;
+      payload.hscBoard = data.hscBoard;
+    }
+    if (data.examType == "BCS" && data.batch) {
+      payload.batch = data.batch;
+    }
+
+    return payload;
+  };
+
+  const preparePracticePayload = (data) => ({
+    title: data.title,
+    examType: data.examType,
+    examMode: "practice",
+    duration: data.duration || null,
+    practiceType: data.practiceType,
+    showResults: data.showResults ?? true,
+    subjects: data.subjects.map((s) => ({
+      name: s.name,
+      questionCount: s.questionCount,
+      questions:
+        s.questions?.map((q) => ({
+          text: q.text,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+        })) || [],
+    })),
+  });
+
+  // ---------- Submit Handler ----------
   const handleSubmitExam = async () => {
     setIsSubmitting(true);
     setSubmitError(null);
-    setSubmitSuccess(false); // Reset success state
+    setSubmitSuccess(false);
 
     try {
+      let payload;
+      let apiUrl;
+
       if (examData.examMode === "live") {
-        await handleLiveSubmit();
+        payload = prepareLiveExamPayload(examData);
+        apiUrl = `${BACKEND_URL}/liveExam/create`;
+      } else if (examData.examMode === "previous") {
+        payload = preparePreviousExamPayload(examData);
+        const routePrefix = examData.examType
+          ? examData.examType.toLowerCase()
+          : "previous";
+        apiUrl = `${BACKEND_URL}/${routePrefix}-questions/create`;
+      } else if (examData.examMode === "practice") {
+        payload = preparePracticePayload(examData);
+        apiUrl = `${BACKEND_URL}/practiceExam/create`;
       } else {
-        console.log(`${examData.examMode} exam - no submission action taken`);
+        throw new Error("Unsupported exam mode");
       }
-    } catch (error) {
-      console.error("Error submitting exam:", error);
-      setSubmitError(error.message);
+
+      console.log("📡 Submitting to:", apiUrl);
+      console.log("🧾 Payload preview:", payload);
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      console.log(
+        "Response status:",
+        response.status,
+        "Response body:",
+        result
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      setSubmitSuccess(true);
+
+      // Reset exam data and step
+      setExamData({ type: "RESET" });
+      setCurrentStep(0); // Make sure you pass setCurrentStep as prop to this component
+      localStorage.removeItem("exam-data");
+      localStorage.removeItem("exam-currentStep");
+
+      // SweetAlert success modal
+      await Swal.fire({
+        title: "✅ Exam submitted successfully!",
+        text: "The exam has been saved successfully.",
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#2563EB",
+        background: "#fff",
+        color: "#111827",
+        allowOutsideClick: true,
+      });
+
+      // Optional: attach returned id to examData if needed
+      if (result._id) {
+        examData._id = result._id;
+        examData.publishedAt = new Date().toISOString();
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      setSubmitError(err.message || "Submission failed");
+
+      // SweetAlert error modal
+      Swal.fire({
+        title: "❌ Submission failed",
+        text: err.message || "Unknown error",
+        icon: "error",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#DC2626",
+        background: "#fff",
+        color: "#111827",
+        allowOutsideClick: true,
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleLiveSubmit = async () => {
-    try {
-      // Prepare live exam specific data
-      const liveExamData = {
-        // Basic exam info
-        title: examData.title,
-        examType: examData.examType,
-        examMode: examData.examMode, // 'live'
-
-        // Live exam specific fields
-        duration: examData.duration, // in minutes
-        startTime: examData.startTime,
-        endTime: examData.startTime
-          ? new Date(
-              new Date(examData.startTime).getTime() + examData.duration * 60000
-            ).toISOString()
-          : null,
-        password: examData.password || null,
-        isPremium: examData.isPremium || false,
-
-        // Question data
-        subjects: examData.subjects.map((subject) => ({
-          name: subject.name,
-          questionCount: subject.questionCount,
-          questions:
-            subject.questions?.map((question) => ({
-              text: question.text,
-              options: question.options,
-              correctAnswer: question.correctAnswer,
-              explanation: question.explanation,
-              difficulty: question.difficulty, // For live exams
-            })) || [],
-        })),
-
-        // Metadata
-        createdAt: new Date().toISOString(),
-        status: "published",
-        totalQuestions: examData.subjects.reduce(
-          (sum, subject) => sum + subject.questionCount,
-          0
-        ),
-      };
-
-      const apiUrl = `${BACKEND_URL}/liveExam/create`;
-      console.log("Making request to:", apiUrl);
-      console.log("Request payload:", liveExamData);
-
-      // Make API call to live exam endpoint
-      const response = await fetch(apiUrl, {
-        // Fixed: Capital 'C'
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(liveExamData),
-      });
-
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-
-      if (!response.ok) {
-        // Try to get error details
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Parse JSON response directly (don't use .text() then .json())
-      const result = await response.json();
-      console.log("Live exam submitted successfully:", result);
-
-      setSubmitSuccess(true);
-
-      // Handle success - you can add redirect or success message here
-      return result;
-    } catch (error) {
-      console.error("Error in handleLiveSubmit:", error);
-      throw error; // Re-throw to be caught by handleSubmitExam
+  // ---------- Dev / debug effect: only show HSC group when it's a previous HSC exam ----------
+  useEffect(() => {
+    if (
+      examData.examMode === "previous" &&
+      examData.examType === "HSC" &&
+      examData.hscGroup
+    ) {
+      console.log("📘 HSC Group:", examData.hscGroup);
+      // show only once (or whenever these fields change):
+      // alert(`HSC Group: ${examData.hscGroup}`);
     }
+  }, [examData.examMode, examData.examType, examData.hscGroup]);
+
+  const getOrdinalSuffix = (value) => {
+    const n = parseInt(value, 10);
+    if (Number.isNaN(n)) return ""; // guard for non-numeric batch values
+    const j = n % 10;
+    const k = n % 100;
+    if (j === 1 && k !== 11) return "st";
+    if (j === 2 && k !== 12) return "nd";
+    if (j === 3 && k !== 13) return "rd";
+    return "th";
   };
 
-  console.log(examData);
-
+  // ---------- Render (keeps your original question UI) ----------
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -290,8 +382,23 @@ const ReviewSubmitStep = ({ examData }) => {
           {examData.examMode === "previous" && (
             <>
               <InfoCard label="Year" value={examData.examYear} />
-              {examData.session && (
-                <InfoCard label="Session" value={examData.session} />
+
+              {examData.examType === "HSC" && (
+                <>
+                  {examData.hscGroup && (
+                    <InfoCard label="Group" value={examData.hscGroup} />
+                  )}
+                  {examData.hscBoard && (
+                    <InfoCard label="Board" value={examData.hscBoard} />
+                  )}
+                </>
+              )}
+
+              {examData.examType === "BCS" && examData.batch && (
+                <InfoCard
+                  label="Batch"
+                  value={`${examData.batch}${getOrdinalSuffix(examData.batch)}`}
+                />
               )}
             </>
           )}
@@ -345,14 +452,14 @@ const ReviewSubmitStep = ({ examData }) => {
         {/* Subject Tabs */}
         <div className="flex space-x-1 sm:space-x-2 overflow-x-auto pb-2">
           {examData.subjects.map((subject, index) => {
-            const completedQuestions = subject.questions?.length || 0;
-            const totalQuestions = subject.questionCount;
+            const completedQ = subject.questions?.length || 0;
+            const totalQ = subject.questionCount;
             const isActive = index === currentSubjectIndex;
-            const isSubjectComplete = completedQuestions === totalQuestions;
+            const isSubjectComplete = completedQ === totalQ;
 
             return (
               <button
-                key={subject.name}
+                key={subject.name + index}
                 onClick={() => navigateToSubject(index)}
                 className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors border-2 ${
                   isActive
@@ -370,7 +477,7 @@ const ReviewSubmitStep = ({ examData }) => {
                     )}
                   </div>
                   <div className="text-xs mt-1">
-                    {completedQuestions}/{totalQuestions}
+                    {completedQ}/{totalQ}
                   </div>
                 </div>
               </button>
@@ -421,14 +528,13 @@ const ReviewSubmitStep = ({ examData }) => {
             {Array.from(
               { length: currentSubject?.questions?.length || 0 },
               (_, index) => {
-                const isCurrentQuestion = index === currentQuestionIndex;
-
+                const isCurrent = index === currentQuestionIndex;
                 return (
                   <button
                     key={index}
                     onClick={() => navigateToQuestion(index)}
                     className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors border-2 ${
-                      isCurrentQuestion
+                      isCurrent
                         ? "bg-blue-600 text-white border-blue-700"
                         : "bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
                     }`}
@@ -447,17 +553,13 @@ const ReviewSubmitStep = ({ examData }) => {
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              {/* Question name on the left */}
               <h3 className="text-xl font-semibold text-gray-900">
                 Question {currentQuestionIndex + 1}
               </h3>
-
-              {/* Subject name in the middle */}
               <h3 className="text-xl font-semibold text-blue-600">
                 {currentSubject?.name}
               </h3>
 
-              {/* Difficulty badge on the right - Only for Live and Practice */}
               {currentQuestion.difficulty &&
               examData.examMode !== "previous" ? (
                 <span
@@ -473,7 +575,7 @@ const ReviewSubmitStep = ({ examData }) => {
                     currentQuestion.difficulty.slice(1)}
                 </span>
               ) : (
-                <div></div> // Empty div to maintain spacing when no difficulty
+                <div></div>
               )}
             </div>
             <div className="flex items-center text-sm text-green-600">
@@ -653,7 +755,7 @@ const ReviewSubmitStep = ({ examData }) => {
             <span className="text-green-800 font-medium">Success!</span>
           </div>
           <p className="text-green-700 mt-1">
-            Live exam has been published successfully!
+            Exam has been published successfully!
           </p>
         </div>
       )}
