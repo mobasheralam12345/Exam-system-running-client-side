@@ -21,8 +21,11 @@ import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
 import LiveExamsPage from "./Pages/LiveExam/liveExams";
 import AdminExamCreator from "./Pages/Admin/Exam-Creation/AdminExamCreator";
 import LiveExamInterface from "./Pages/LiveExamRoom";
+import LiveExamRoom from "./Pages/ExamRoom/LiveExamRoom";
+import OthersExamRoom from "./Pages/ExamRoom/OthersExamRoom";
 import ExamReview from "./Pages/ExamReview";
 import Profile from "./Pages/Profile";
+import { i } from "framer-motion/client";
 
 const router = createBrowserRouter([
   {
@@ -116,6 +119,14 @@ const router = createBrowserRouter([
       {
         path: "/Exam/Room/Live",
         element: <LiveExamInterface></LiveExamInterface>,
+      },
+      {
+        path: "/exam/live",
+        element: <LiveExamRoom></LiveExamRoom>,
+      },
+      {
+        path: "/exam/others",
+        element: <OthersExamRoom></OthersExamRoom>,
       },
       {
         path: "/Exam/Review",

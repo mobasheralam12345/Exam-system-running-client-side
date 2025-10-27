@@ -1,0 +1,474 @@
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import ExamHeader from "./components/ExamHeader";
+import QuestionDisplay from "./components/QuestionDisplay";
+import NavigationSidebar from "./components/NavigationSidebar";
+import StartConfirmation from "./screens/StartConfirmation";
+import ViolationWarning from "./screens/ViolationWarning";
+import ExpelledScreen from "./screens/ExpelledScreen";
+import SubmitConfirmation from "./screens/SubmitConfirmation";
+import ExamCompletedScreen from "./screens/ExamCompletedScreen";
+import useExamTimer from "../../hooks/useExamTimer";
+import useExamMonitoring from "../../hooks/useExamMonitoring";
+import useFullscreen from "../../hooks/useFullscreen";
+
+const LiveExamRoom = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [examData, setExamData] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [reviewMarked, setReviewMarked] = useState(new Set());
+  const [visitedQuestions, setVisitedQuestions] = useState(new Set());
+  const [examStarted, setExamStarted] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(true);
+  const [examCompleted, setExamCompleted] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  const { isFullscreen, setIsFullscreen, enterFullscreen } = useFullscreen();
+
+  const getStorageKey = (key) => {
+    return examData ? `exam_${examData._id}_${key}` : null;
+  };
+
+  useEffect(() => {
+    const passedExamData = location.state?.examData;
+    if (passedExamData) {
+      setExamData(passedExamData);
+
+      const savedAnswers = localStorage.getItem(
+        `exam_${passedExamData._id}_answers`
+      );
+      const savedReviewMarked = localStorage.getItem(
+        `exam_${passedExamData._id}_reviewMarked`
+      );
+      const savedVisitedQuestions = localStorage.getItem(
+        `exam_${passedExamData._id}_visitedQuestions`
+      );
+      const savedCurrentSubject = localStorage.getItem(
+        `exam_${passedExamData._id}_currentSubject`
+      );
+      const savedCurrentQuestion = localStorage.getItem(
+        `exam_${passedExamData._id}_currentQuestion`
+      );
+
+      if (savedAnswers) {
+        setAnswers(JSON.parse(savedAnswers));
+      }
+      if (savedReviewMarked) {
+        setReviewMarked(new Set(JSON.parse(savedReviewMarked)));
+      }
+      if (savedVisitedQuestions) {
+        setVisitedQuestions(new Set(JSON.parse(savedVisitedQuestions)));
+      }
+      if (savedCurrentSubject) {
+        setCurrentSubjectIndex(parseInt(savedCurrentSubject));
+      }
+      if (savedCurrentQuestion) {
+        setCurrentQuestionIndex(parseInt(savedCurrentQuestion));
+      }
+    } else {
+      navigate("/live-exams");
+    }
+  }, [location.state, navigate]);
+
+  const { timeLeft, setTimeLeft } = useExamTimer(
+    examStarted,
+    examCompleted,
+    examData,
+    handleAutoSubmit
+  );
+
+  const {
+    showViolationWarning,
+    violationType,
+    isExpelled,
+    violationCounts,
+    handleReturnToExam,
+  } = useExamMonitoring(
+    examStarted,
+    examCompleted,
+    enterFullscreen,
+    examData?._id
+  );
+
+  useEffect(() => {
+    if (examData && examStarted && !examCompleted) {
+      localStorage.setItem(getStorageKey("answers"), JSON.stringify(answers));
+    }
+  }, [answers, examData, examStarted, examCompleted]);
+
+  useEffect(() => {
+    if (examData && examStarted && !examCompleted) {
+      localStorage.setItem(
+        getStorageKey("reviewMarked"),
+        JSON.stringify([...reviewMarked])
+      );
+    }
+  }, [reviewMarked, examData, examStarted, examCompleted]);
+
+  useEffect(() => {
+    if (examData && examStarted && !examCompleted) {
+      localStorage.setItem(
+        getStorageKey("visitedQuestions"),
+        JSON.stringify([...visitedQuestions])
+      );
+    }
+  }, [visitedQuestions, examData, examStarted, examCompleted]);
+
+  useEffect(() => {
+    if (examData && examStarted && !examCompleted) {
+      localStorage.setItem(
+        getStorageKey("currentSubject"),
+        currentSubjectIndex.toString()
+      );
+      localStorage.setItem(
+        getStorageKey("currentQuestion"),
+        currentQuestionIndex.toString()
+      );
+    }
+  }, [
+    currentSubjectIndex,
+    currentQuestionIndex,
+    examData,
+    examStarted,
+    examCompleted,
+  ]);
+
+  const clearExamStorage = () => {
+    if (examData) {
+      localStorage.removeItem(getStorageKey("answers"));
+      localStorage.removeItem(getStorageKey("reviewMarked"));
+      localStorage.removeItem(getStorageKey("visitedQuestions"));
+      localStorage.removeItem(getStorageKey("currentSubject"));
+      localStorage.removeItem(getStorageKey("currentQuestion"));
+      localStorage.removeItem(`exam_${examData._id}_violations`);
+    }
+  };
+
+  const exitFullscreen = async () => {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        await document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        await document.msExitFullscreen();
+      }
+    } catch (error) {
+      console.error("Exit fullscreen error:", error);
+    }
+  };
+
+  async function handleAutoSubmit(reason) {
+    if (examCompleted) return;
+
+    const submissionData = {
+      examId: examData._id,
+      userId: location.state?.userData?._id,
+      answers,
+      timeConsumed: examData.duration * 60 - timeLeft,
+      completionReason: reason,
+      submittedAt: new Date().toISOString(),
+      violations: {
+        total: violationCounts.total,
+        fullscreenExit: violationCounts.fullscreenExit,
+        tabSwitching: violationCounts.tabSwitching,
+        escapeKey: violationCounts.escapeKey,
+        windowBlur: violationCounts.windowBlur,
+      },
+    };
+
+    setExamCompleted(true);
+
+    try {
+      setSubmissionLoading(true);
+      const response = await fetch("/api/exam-submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        clearExamStorage();
+        await exitFullscreen();
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      } else {
+        await exitFullscreen();
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      await exitFullscreen();
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } finally {
+      setSubmissionLoading(false);
+    }
+  }
+
+  const handleStartExam = async () => {
+    setShowStartConfirm(false);
+    await enterFullscreen();
+    setExamStarted(true);
+    markQuestionVisited(0, 0);
+  };
+
+  const handleSubmitClick = () => {
+    setShowSubmitConfirm(true);
+  };
+
+  const handleSubmitConfirm = () => {
+    setShowSubmitConfirm(false);
+    handleAutoSubmit("manual");
+  };
+
+  const handleSubmitCancel = () => {
+    setShowSubmitConfirm(false);
+  };
+
+  const handleAnswerSelect = (optionIndex) => {
+    const questionKey = `${currentSubjectIndex}-${currentQuestionIndex}`;
+    setAnswers((prev) => ({ ...prev, [questionKey]: optionIndex }));
+  };
+
+  const toggleReviewMark = () => {
+    const questionKey = `${currentSubjectIndex}-${currentQuestionIndex}`;
+    setReviewMarked((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionKey)) newSet.delete(questionKey);
+      else newSet.add(questionKey);
+      return newSet;
+    });
+  };
+
+  const markQuestionVisited = (subjectIndex, questionIndex) => {
+    const questionKey = `${subjectIndex}-${questionIndex}`;
+    setVisitedQuestions((prev) => new Set([...prev, questionKey]));
+  };
+
+  const goToQuestion = (subjectIndex, questionIndex) => {
+    setCurrentSubjectIndex(subjectIndex);
+    setCurrentQuestionIndex(questionIndex);
+    markQuestionVisited(subjectIndex, questionIndex);
+  };
+
+  const handleQuestionSelect = (subjectIndex, questionIndex) => {
+    goToQuestion(subjectIndex, questionIndex);
+    setShowMobileSidebar(false);
+  };
+
+  const toggleMobileSidebar = () => {
+    setShowMobileSidebar(!showMobileSidebar);
+  };
+
+  const goToNextQuestion = () => {
+    const currentSubject = examData.subjects[currentSubjectIndex];
+    if (currentQuestionIndex < currentSubject.questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      markQuestionVisited(currentSubjectIndex, currentQuestionIndex + 1);
+    } else if (currentSubjectIndex < examData.subjects.length - 1) {
+      setCurrentSubjectIndex((prev) => prev + 1);
+      setCurrentQuestionIndex(0);
+      markQuestionVisited(currentSubjectIndex + 1, 0);
+    }
+  };
+
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+      markQuestionVisited(currentSubjectIndex, currentQuestionIndex - 1);
+    } else if (currentSubjectIndex > 0) {
+      const prevSubject = examData.subjects[currentSubjectIndex - 1];
+      setCurrentSubjectIndex((prev) => prev - 1);
+      setCurrentQuestionIndex(prevSubject.questions.length - 1);
+      markQuestionVisited(
+        currentSubjectIndex - 1,
+        prevSubject.questions.length - 1
+      );
+    }
+  };
+
+  const isLastQuestion = () => {
+    const lastSubjectIndex = examData.subjects.length - 1;
+    const lastQuestionIndex =
+      examData.subjects[lastSubjectIndex].questions.length - 1;
+    return (
+      currentSubjectIndex === lastSubjectIndex &&
+      currentQuestionIndex === lastQuestionIndex
+    );
+  };
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  if (!examData) return <div>Loading...</div>;
+
+  if (showStartConfirm) {
+    return <StartConfirmation examData={examData} onStart={handleStartExam} />;
+  }
+
+  if (isExpelled) {
+    clearExamStorage();
+    return <ExpelledScreen onOk={() => navigate("/")} />;
+  }
+
+  if (examCompleted) {
+    return <ExamCompletedScreen loading={submissionLoading} />;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-white">
+      <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
+        {/* Mobile Sidebar Overlay */}
+        {showMobileSidebar && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={toggleMobileSidebar}
+          ></div>
+        )}
+
+        {/* Sidebar */}
+        <div
+          className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 transform transition-transform duration-300 ease-in-out lg:transform-none ${
+            showMobileSidebar
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
+          <NavigationSidebar
+            examData={examData}
+            currentSubjectIndex={currentSubjectIndex}
+            currentQuestionIndex={currentQuestionIndex}
+            answers={answers}
+            reviewMarked={reviewMarked}
+            visitedQuestions={visitedQuestions}
+            timeLeft={timeLeft}
+            goToQuestion={handleQuestionSelect}
+          />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Mobile Header with Timer (only visible on mobile) */}
+          <div className="lg:hidden bg-white border-b shadow-sm">
+            <div className="flex items-center justify-between p-3">
+              <button
+                onClick={toggleMobileSidebar}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                aria-label="Toggle navigation"
+              >
+                <svg
+                  className="w-6 h-6 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+
+              {/* Timer - Larger Size to Match Sidebar */}
+              <div className="flex flex-col items-center bg-red-600 px-4 py-2 rounded-lg">
+                <span className="text-2xl font-mono font-bold text-white">
+                  {formatTime(timeLeft)}
+                </span>
+                <span className="text-xs text-red-100">Time Remaining</span>
+              </div>
+
+              <button
+                onClick={handleSubmitClick}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex-shrink-0"
+              >
+                Submit
+              </button>
+            </div>
+
+            {/* Question Info Bar */}
+            <div className="px-3 py-2 bg-gray-50 border-t">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600 font-medium">
+                  Question {currentQuestionIndex + 1} of{" "}
+                  {examData.subjects.reduce(
+                    (total, subject) => total + subject.questions.length,
+                    0
+                  )}
+                </span>
+                <span className="text-gray-500 text-xs">
+                  {examData.subjects[currentSubjectIndex].name}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Header (hidden on mobile) */}
+          <div className="hidden lg:block">
+            <ExamHeader
+              examData={examData}
+              currentSubjectIndex={currentSubjectIndex}
+              currentQuestionIndex={currentQuestionIndex}
+              onSubmit={handleSubmitClick}
+              showSubmit={true}
+            />
+          </div>
+
+          <QuestionDisplay
+            question={
+              examData.subjects[currentSubjectIndex].questions[
+                currentQuestionIndex
+              ]
+            }
+            answers={answers}
+            currentSubjectIndex={currentSubjectIndex}
+            currentQuestionIndex={currentQuestionIndex}
+            onAnswerSelect={handleAnswerSelect}
+            onToggleReview={toggleReviewMark}
+            onNext={goToNextQuestion}
+            onPrevious={goToPreviousQuestion}
+            reviewMarked={reviewMarked}
+            isLastQuestion={isLastQuestion()}
+          />
+        </div>
+
+        {showViolationWarning && (
+          <ViolationWarning
+            violationType={violationType}
+            onReturn={handleReturnToExam}
+          />
+        )}
+
+        {showSubmitConfirm && (
+          <SubmitConfirmation
+            onConfirm={handleSubmitConfirm}
+            onCancel={handleSubmitCancel}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default LiveExamRoom;

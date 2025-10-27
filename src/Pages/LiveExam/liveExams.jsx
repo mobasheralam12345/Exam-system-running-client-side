@@ -583,7 +583,7 @@ const LiveExamsPage = () => {
     const handleEnterExam = (e) => {
       e.preventDefault();
       // Navigate to /exam/room/live with exam data
-      navigate("/exam/room/live", { state: { examData: exam } });
+      navigate("/exam/live", { state: { examData: exam } });
     };
 
     return (

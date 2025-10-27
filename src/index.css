@@ -1,4 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Hide navbar and other elements when in fullscreen */
+:fullscreen {
+  /* Hide all headers/navbars */
+  header,
+  nav,
+  .navbar,
+  [role="banner"],
+  [role="navigation"] {
+    display: none !important;
+  }
+}
 
+/* For Safari/Webkit */
+:-webkit-full-screen {
+  header,
+  nav,
+  .navbar,
+  [role="banner"],
+  [role="navigation"] {
+    display: none !important;
+  }
+}
+
+/* For Firefox */
+:-moz-full-screen {
+  header,
+  nav,
+  .navbar,
+  [role="banner"],
+  [role="navigation"] {
+    display: none !important;
+  }
+}
