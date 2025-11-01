@@ -125,7 +125,7 @@ const router = createBrowserRouter([
         element: <LiveExamRoom></LiveExamRoom>,
       },
       {
-        path: "/exam/others",
+        path: "/exam/practice",
         element: <OthersExamRoom></OthersExamRoom>,
       },
       {

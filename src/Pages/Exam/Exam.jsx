@@ -1,28 +1,47 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Quiz from "./Quiz";
 
-const QuestionSelector = ({ onSelect }) => {
-  const [selectedYear, setSelectedYear] = useState(""); // Default is empty
-  const years = Array.from({ length: 46 }, (_, i) => 46 - i); // Generate years 31-45
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+// Helper to clear previous exam/practice keys from localStorage
+const clearExamPracticeStorage = () => {
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith("practice_exam_")) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+const YearSelector = () => {
+  const [selectedYear, setSelectedYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const years = Array.from({ length: 50 }, (_, i) => 50 - i);
 
   const handleProceed = () => {
-    if (selectedYear) {
-      localStorage.setItem("bcsYear", selectedYear);
-      if (onSelect) {
-        onSelect(selectedYear); // Pass the selected year to the parent
-      } else {
-        console.error("onSelect function is not provided!");
-      }
-      Swal.fire({
-        position: "center",
-        title: "Your Exam is started",
-        showConfirmButton: false,
-        timer: 500,
-      });
-    } else {
-      Swal.fire("Please select a question year before proceeding");
+    if (!selectedYear) {
+      Swal.fire("Please select a year before proceeding");
+      return;
     }
+    setLoading(true);
+    fetch(`${BACKEND_URL}/bcs-questions/${selectedYear}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setLoading(false);
+        if (data.success) {
+          clearExamPracticeStorage();
+          navigate("/exam/practice", {
+            state: { examData: data.data, year: selectedYear },
+          });
+        } else {
+          Swal.fire("Exam not found for the selected year");
+        }
+      })
+      .catch((err) => {
+        setLoading(false);
+        Swal.fire(`Failed to load exam: ${err.message}`);
+      });
   };
 
   return (
@@ -32,23 +51,24 @@ const QuestionSelector = ({ onSelect }) => {
       </h2>
       <div className="mt-4">
         <label
-          htmlFor="questionType"
+          htmlFor="yearSelect"
           className="text-xl font-semibold text-gray-700"
         >
-          Choose a question year:
+          Choose a year:
         </label>
         <select
-          id="questionType"
+          id="yearSelect"
           className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
+          disabled={loading}
         >
           <option value="" disabled>
             Select a Year
           </option>
           {years.map((year) => (
             <option key={year} value={year}>
-              {year}th Question
+              {year}th Year
             </option>
           ))}
         </select>
@@ -57,33 +77,13 @@ const QuestionSelector = ({ onSelect }) => {
         <button
           className="bg-green-500 border mx-auto w-full border-green-500 text-white px-4 py-2 text-lg rounded-lg transition-colors hover:bg-green-600"
           onClick={handleProceed}
-          disabled={!selectedYear}
+          disabled={!selectedYear || loading}
         >
-          Start Exam
+          {loading ? "Loading..." : "Start Exam"}
         </button>
       </div>
     </div>
   );
 };
 
-const QuizContainer = () => {
-  const [isQuizStarted, setIsQuizStarted] = useState(false);
-  const [selectedYear, setSelectedYear] = useState("");
-
-  const handleSelectYear = (year) => {
-    setSelectedYear(year);
-    setIsQuizStarted(true); // Start quiz as soon as a year is selected
-  };
-
-  return (
-    <div>
-      {!isQuizStarted ? (
-        <QuestionSelector onSelect={handleSelectYear} />
-      ) : (
-        <Quiz year={selectedYear} />
-      )}
-    </div>
-  );
-};
-
-export default QuizContainer;
+export default YearSelector;
