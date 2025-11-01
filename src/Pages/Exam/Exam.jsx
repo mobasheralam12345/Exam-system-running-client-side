@@ -4,15 +4,6 @@ import Swal from "sweetalert2";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Helper to clear previous exam/practice keys from localStorage
-const clearExamPracticeStorage = () => {
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith("practice_exam_")) {
-      localStorage.removeItem(key);
-    }
-  });
-};
-
 const YearSelector = () => {
   const [selectedYear, setSelectedYear] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,10 +21,11 @@ const YearSelector = () => {
       .then((data) => {
         setLoading(false);
         if (data.success) {
-          clearExamPracticeStorage();
           navigate("/exam/practice", {
             state: { examData: data.data, year: selectedYear },
           });
+          setSelectedYear("");
+          setLoading(false);
         } else {
           Swal.fire("Exam not found for the selected year");
         }

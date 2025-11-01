@@ -4,14 +4,6 @@ import Swal from "sweetalert2";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-const clearHscPracticeStorage = () => {
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith("hsc_practice_")) {
-      localStorage.removeItem(key);
-    }
-  });
-};
-
 const HscExamSelector = () => {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedBoard, setSelectedBoard] = useState("");
@@ -56,7 +48,6 @@ const HscExamSelector = () => {
       .then((data) => {
         setLoading(false);
         if (data.success) {
-          clearHscPracticeStorage();
           navigate("/exam/practice", {
             state: {
               examData: data.data,
@@ -65,7 +56,12 @@ const HscExamSelector = () => {
               board: selectedBoard,
             },
           });
+          setSelectedGroup("");
+          setSelectedBoard("");
+          setExamYear("");
+          setLoading(false);
         } else {
+          setLoading(false);
           Swal.fire("Exam not found for the selected details");
         }
       })
