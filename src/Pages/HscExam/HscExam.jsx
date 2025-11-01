@@ -1,11 +1,24 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import HscQuiz from "./HscQuiz";
 
-const QuestionSelector = ({ onSelect }) => {
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+const clearHscPracticeStorage = () => {
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith("hsc_practice_")) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+const HscExamSelector = () => {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedBoard, setSelectedBoard] = useState("");
   const [examYear, setExamYear] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const groups = ["Science", "Business Studies", "Humanities"];
   const boards = [
@@ -21,27 +34,45 @@ const QuestionSelector = ({ onSelect }) => {
     "Comilla",
   ];
 
+  const years = Array.from({ length: 2025 - 2010 + 1 }, (_, i) => 2025 - i);
+
   const handleProceed = () => {
-    if (selectedGroup && selectedBoard && examYear) {
-      localStorage.setItem("group", selectedGroup);
-      localStorage.setItem("board", selectedBoard);
-      localStorage.setItem("examYear", examYear);
-
-      if (onSelect) {
-        onSelect(selectedGroup, selectedBoard, examYear);
-      } else {
-        console.error("onSelect function is not provided!");
-      }
-
-      Swal.fire({
-        position: "center",
-        title: "Your Exam is started",
-        showConfirmButton: false,
-        timer: 500,
-      });
-    } else {
+    if (!examYear || !selectedGroup || !selectedBoard) {
       Swal.fire("Please select all fields before proceeding");
+      return;
     }
+    setLoading(true);
+    fetch(
+      `${BACKEND_URL}/hsc-questions/${examYear}/${encodeURIComponent(
+        selectedBoard
+      )}/${encodeURIComponent(selectedGroup)}`
+    )
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setLoading(false);
+        if (data.success) {
+          clearHscPracticeStorage();
+          navigate("/exam/practice", {
+            state: {
+              examData: data.data,
+              year: examYear,
+              group: selectedGroup,
+              board: selectedBoard,
+            },
+          });
+        } else {
+          Swal.fire("Exam not found for the selected details");
+        }
+      })
+      .catch((err) => {
+        setLoading(false);
+        Swal.fire(`Failed to load exam: ${err.message}`);
+      });
   };
 
   return (
@@ -57,6 +88,7 @@ const QuestionSelector = ({ onSelect }) => {
           className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={selectedGroup}
           onChange={(e) => setSelectedGroup(e.target.value)}
+          disabled={loading}
         >
           <option value="" disabled>
             Select a Group
@@ -77,6 +109,7 @@ const QuestionSelector = ({ onSelect }) => {
           className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={selectedBoard}
           onChange={(e) => setSelectedBoard(e.target.value)}
+          disabled={loading}
         >
           <option value="" disabled>
             Select a Board
@@ -90,63 +123,40 @@ const QuestionSelector = ({ onSelect }) => {
       </div>
 
       <div className="mt-4">
-        <label className="text-xl font-semibold text-gray-700">
+        <label
+          htmlFor="yearSelect"
+          className="text-xl font-semibold text-gray-700"
+        >
           Select Exam Year:
         </label>
         <select
+          id="yearSelect"
           className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-gray-700"
           value={examYear}
           onChange={(e) => setExamYear(e.target.value)}
+          disabled={loading}
         >
-          <option value="">Select Year</option>
-          {Array.from({ length: 2025 - 2010 + 1 }, (_, i) => 2025 - i).map(
-            (year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            )
-          )}
+          <option value="" disabled>
+            Select a Year
+          </option>
+          {years.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
         </select>
       </div>
       <div className="mt-10 flex justify-center">
         <button
           className="bg-green-500 border mx-auto w-full border-green-500 text-white px-4 py-2 text-lg rounded-lg transition-colors hover:bg-green-600"
           onClick={handleProceed}
-          disabled={!selectedGroup || !selectedBoard || !examYear}
+          disabled={!examYear || !selectedGroup || !selectedBoard || loading}
         >
-          Start Exam
+          {loading ? "Loading..." : "Start Exam"}
         </button>
       </div>
     </div>
   );
 };
 
-const QuizContainer = () => {
-  const [isQuizStarted, setIsQuizStarted] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState("");
-  const [selectedBoard, setSelectedBoard] = useState("");
-  const [examYear, setExamYear] = useState("");
-
-  const handleSelectDetails = (group, board, year) => {
-    setSelectedGroup(group);
-    setSelectedBoard(board);
-    setExamYear(year);
-    setIsQuizStarted(true);
-  };
-
-  return (
-    <div>
-      {!isQuizStarted ? (
-        <QuestionSelector onSelect={handleSelectDetails} />
-      ) : (
-        <HscQuiz
-          group={selectedGroup}
-          board={selectedBoard}
-          examYear={examYear}
-        />
-      )}
-    </div>
-  );
-};
-
-export default QuizContainer;
+export default HscExamSelector;
