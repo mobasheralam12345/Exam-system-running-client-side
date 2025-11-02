@@ -5,9 +5,9 @@ import PrivateRoute from "./Pages/PrivateRoute";
 import About from "./Pages/About";
 import Login from "./Pages/Login/Login";
 import Register from "./Pages/Register/Register";
-import Exam from "./Pages/Exam/Exam";
+import BcsExam from "./Pages/BcsExam/BcsExam";
 import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
-import SubjectWiseExam from "./Pages/SubjectWiseExam/SubjectWise-Exam";
+import SubjectWiseExam from "./Pages/BcsExam/subjectWiseBCS";
 import HscExam from "../src/Pages/HscExam/HscExam";
 import HscSubjectWiseExam from "./Pages/HscExam/HscSubjectWiseExam";
 import AdminLogin from "./Pages/Admin/AdminLogin";
@@ -53,7 +53,7 @@ const router = createBrowserRouter([
         path: "/exam",
         element: (
           <PrivateRoute>
-            <Exam />
+            <BcsExam />
           </PrivateRoute>
         ),
       },

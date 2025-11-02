@@ -29,76 +29,69 @@ const OthersExamRoom = () => {
     return examData ? `practice_exam_${examData._id}_${key}` : null;
   };
 
-  // Load exam data and restore state from localStorage
   useEffect(() => {
     const passedExamData = location.state?.examData;
-    if (passedExamData) {
-      setExamData(passedExamData);
-
-      // Check if there's an existing session for this exam
-      const savedStartTime = localStorage.getItem(
-        `practice_exam_${passedExamData._id}_startTime`
-      );
-      const savedAnswers = localStorage.getItem(
-        `practice_exam_${passedExamData._id}_answers`
-      );
-      const savedReviewMarked = localStorage.getItem(
-        `practice_exam_${passedExamData._id}_reviewMarked`
-      );
-      const savedVisitedQuestions = localStorage.getItem(
-        `practice_exam_${passedExamData._id}_visitedQuestions`
-      );
-      const savedCurrentSubject = localStorage.getItem(
-        `practice_exam_${passedExamData._id}_currentSubject`
-      );
-      const savedCurrentQuestion = localStorage.getItem(
-        `practice_exam_${passedExamData._id}_currentQuestion`
-      );
-
-      // Restore answers and navigation state
-      if (savedAnswers) {
-        setAnswers(JSON.parse(savedAnswers));
-      }
-      if (savedReviewMarked) {
-        setReviewMarked(new Set(JSON.parse(savedReviewMarked)));
-      }
-      if (savedVisitedQuestions) {
-        setVisitedQuestions(new Set(JSON.parse(savedVisitedQuestions)));
-      }
-      if (savedCurrentSubject) {
-        setCurrentSubjectIndex(parseInt(savedCurrentSubject));
-      }
-      if (savedCurrentQuestion) {
-        setCurrentQuestionIndex(parseInt(savedCurrentQuestion));
-      }
-
-      // Calculate remaining time based on start time
-      if (savedStartTime) {
-        const startTime = parseInt(savedStartTime);
-        const totalDuration = passedExamData.duration
-          ? passedExamData.duration * 60
-          : passedExamData.totalQuestions * 60;
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const remaining = Math.max(0, totalDuration - elapsedTime);
-        setTimeLeft(remaining);
-
-        // If time already expired, mark as completed
-        if (remaining === 0) {
-          setExamCompleted(true);
-        }
-      } else {
-        // New exam - set initial time
-        const totalTime = passedExamData.duration
-          ? passedExamData.duration * 60
-          : passedExamData.totalQuestions * 60;
-        setTimeLeft(totalTime);
-      }
-    } else {
+    if (!passedExamData) {
       navigate("/exams");
+      return;
+    }
+
+    setExamData(passedExamData);
+
+    const subjects = Array.isArray(passedExamData.subjects)
+      ? passedExamData.subjects
+      : [];
+
+    const savedStartTime = localStorage.getItem(getStorageKey("startTime"));
+    const savedAnswers = localStorage.getItem(getStorageKey("answers"));
+    const savedReviewMarked = localStorage.getItem(
+      getStorageKey("reviewMarked")
+    );
+    const savedVisitedQuestions = localStorage.getItem(
+      getStorageKey("visitedQuestions")
+    );
+    const savedCurrentSubject = localStorage.getItem(
+      getStorageKey("currentSubject")
+    );
+    const savedCurrentQuestion = localStorage.getItem(
+      getStorageKey("currentQuestion")
+    );
+
+    if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+    if (savedReviewMarked)
+      setReviewMarked(new Set(JSON.parse(savedReviewMarked)));
+    if (savedVisitedQuestions)
+      setVisitedQuestions(new Set(JSON.parse(savedVisitedQuestions)));
+
+    const maxSubjectIndex = subjects.length - 1;
+    const initSubjectIndex = savedCurrentSubject
+      ? Math.min(parseInt(savedCurrentSubject), maxSubjectIndex)
+      : 0;
+    setCurrentSubjectIndex(initSubjectIndex);
+
+    const currentSubjectQuestions = subjects[initSubjectIndex]?.questions || [];
+    const maxQuestionIndex = currentSubjectQuestions.length - 1;
+    const initQuestionIndex = savedCurrentQuestion
+      ? Math.min(parseInt(savedCurrentQuestion), maxQuestionIndex)
+      : 0;
+    setCurrentQuestionIndex(initQuestionIndex);
+
+    const totalDuration = passedExamData.duration
+      ? passedExamData.duration * 60
+      : (passedExamData.totalQuestions || 0) * 60;
+
+    if (savedStartTime) {
+      const elapsed = Math.floor(
+        (Date.now() - parseInt(savedStartTime)) / 1000
+      );
+      const remaining = Math.max(0, totalDuration - elapsed);
+      setTimeLeft(remaining);
+      if (remaining === 0) setExamCompleted(true);
+    } else {
+      setTimeLeft(totalDuration);
     }
   }, [location.state, navigate]);
 
-  // Timer countdown
   useEffect(() => {
     if (!examStarted || timeLeft <= 0 || examCompleted) return;
 
@@ -115,185 +108,150 @@ const OthersExamRoom = () => {
     return () => clearInterval(timer);
   }, [examStarted, timeLeft, examCompleted]);
 
-  // Save answers to localStorage
   useEffect(() => {
-    if (examData && examStarted && !examCompleted) {
-      localStorage.setItem(getStorageKey("answers"), JSON.stringify(answers));
-    }
-  }, [answers, examData, examStarted, examCompleted]);
-
-  // Save review marks
-  useEffect(() => {
-    if (examData && examStarted && !examCompleted) {
-      localStorage.setItem(
-        getStorageKey("reviewMarked"),
-        JSON.stringify([...reviewMarked])
-      );
-    }
-  }, [reviewMarked, examData, examStarted, examCompleted]);
-
-  // Save visited questions
-  useEffect(() => {
-    if (examData && examStarted && !examCompleted) {
-      localStorage.setItem(
-        getStorageKey("visitedQuestions"),
-        JSON.stringify([...visitedQuestions])
-      );
-    }
-  }, [visitedQuestions, examData, examStarted, examCompleted]);
-
-  // Save current position
-  useEffect(() => {
-    if (examData && examStarted && !examCompleted) {
-      localStorage.setItem(
-        getStorageKey("currentSubject"),
-        currentSubjectIndex.toString()
-      );
-      localStorage.setItem(
-        getStorageKey("currentQuestion"),
-        currentQuestionIndex.toString()
-      );
-    }
+    if (!examData || !examStarted) return;
+    localStorage.setItem(getStorageKey("answers"), JSON.stringify(answers));
+    localStorage.setItem(
+      getStorageKey("reviewMarked"),
+      JSON.stringify([...reviewMarked])
+    );
+    localStorage.setItem(
+      getStorageKey("visitedQuestions"),
+      JSON.stringify([...visitedQuestions])
+    );
+    localStorage.setItem(
+      getStorageKey("currentSubject"),
+      currentSubjectIndex.toString()
+    );
+    localStorage.setItem(
+      getStorageKey("currentQuestion"),
+      currentQuestionIndex.toString()
+    );
   }, [
+    answers,
+    reviewMarked,
+    visitedQuestions,
     currentSubjectIndex,
     currentQuestionIndex,
     examData,
     examStarted,
-    examCompleted,
   ]);
 
-  useEffect(() => {
-    // Only auto-request on very first mount
-    const enterFullscreen = async () => {
-      try {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) await elem.requestFullscreen();
-        else if (elem.webkitRequestFullscreen)
-          await elem.webkitRequestFullscreen();
-        else if (elem.mozRequestFullScreen) await elem.mozRequestFullScreen();
-        else if (elem.msRequestFullscreen) await elem.msRequestFullscreen();
-        setIsFullscreen(true);
-      } catch (err) {
-        setIsFullscreen(false);
-      }
-    };
-    enterFullscreen();
-    // eslint-disable-next-line
-  }, []);
+  const requestFullscreen = async () => {
+    if (examCompleted) return setIsFullscreen(false);
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) await elem.requestFullscreen();
+      else if (elem.webkitRequestFullscreen)
+        await elem.webkitRequestFullscreen();
+      else if (elem.mozRequestFullScreen) await elem.mozRequestFullScreen();
+      else if (elem.msRequestFullscreen) await elem.msRequestFullscreen();
+      setIsFullscreen(true);
+    } catch {
+      setIsFullscreen(false);
+    }
+  };
 
-  // Listen to fullscreen changes
+  const exitFullscreen = async () => {
+    try {
+      if (document.exitFullscreen) await document.exitFullscreen();
+      else if (document.webkitExitFullscreen)
+        await document.webkitExitFullscreen();
+      else if (document.mozCancelFullScreen)
+        await document.mozCancelFullScreen();
+      else if (document.msExitFullscreen) await document.msExitFullscreen();
+      setIsFullscreen(false);
+    } catch {}
+  };
+
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(
+    if (!examCompleted) requestFullscreen();
+    else exitFullscreen();
+
+    const handleChange = () => {
+      const fs = !!(
         document.fullscreenElement ||
         document.webkitFullscreenElement ||
         document.mozFullScreenElement ||
         document.msFullscreenElement
       );
-      setIsFullscreen(isCurrentlyFullscreen);
+      setIsFullscreen(fs);
     };
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
-    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+    document.addEventListener("fullscreenchange", handleChange);
+    document.addEventListener("webkitfullscreenchange", handleChange);
+    document.addEventListener("mozfullscreenchange", handleChange);
+    document.addEventListener("MSFullscreenChange", handleChange);
 
     return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener(
-        "webkitfullscreenchange",
-        handleFullscreenChange
-      );
-      document.removeEventListener(
-        "mozfullscreenchange",
-        handleFullscreenChange
-      );
-      document.removeEventListener(
-        "MSFullscreenChange",
-        handleFullscreenChange
-      );
+      document.removeEventListener("fullscreenchange", handleChange);
+      document.removeEventListener("webkitfullscreenchange", handleChange);
+      document.removeEventListener("mozfullscreenchange", handleChange);
+      document.removeEventListener("MSFullscreenChange", handleChange);
     };
-  }, []);
+  }, [examCompleted]);
 
   const clearExamStorage = () => {
-    if (examData) {
-      localStorage.removeItem(getStorageKey("answers"));
-      localStorage.removeItem(getStorageKey("reviewMarked"));
-      localStorage.removeItem(getStorageKey("visitedQuestions"));
-      localStorage.removeItem(getStorageKey("currentSubject"));
-      localStorage.removeItem(getStorageKey("currentQuestion"));
-      localStorage.removeItem(`practice_exam_${examData._id}_startTime`);
-    }
+    if (!examData) return;
+    localStorage.removeItem(getStorageKey("answers"));
+    localStorage.removeItem(getStorageKey("reviewMarked"));
+    localStorage.removeItem(getStorageKey("visitedQuestions"));
+    localStorage.removeItem(getStorageKey("currentSubject"));
+    localStorage.removeItem(getStorageKey("currentQuestion"));
+    localStorage.removeItem(getStorageKey("startTime"));
   };
 
   const handleStartExam = () => {
     setShowStartConfirm(false);
     setExamStarted(true);
     markQuestionVisited(0, 0);
-
-    // Save start time to localStorage
-    const startTime = Date.now();
-    localStorage.setItem(
-      `practice_exam_${examData._id}_startTime`,
-      startTime.toString()
-    );
+    localStorage.setItem(getStorageKey("startTime"), Date.now().toString());
   };
 
-  const handleSubmitClick = () => {
-    setShowSubmitConfirm(true);
-  };
-
+  const handleSubmitClick = () => setShowSubmitConfirm(true);
   const handleSubmitConfirm = () => {
     setShowSubmitConfirm(false);
     setExamCompleted(true);
     clearExamStorage();
   };
-
-  const handleSubmitCancel = () => {
-    setShowSubmitConfirm(false);
-  };
+  const handleSubmitCancel = () => setShowSubmitConfirm(false);
 
   const handleAnswerSelect = (optionIndex) => {
-    const questionKey = `${currentSubjectIndex}-${currentQuestionIndex}`;
-    setAnswers((prev) => ({ ...prev, [questionKey]: optionIndex }));
+    const key = `${currentSubjectIndex}-${currentQuestionIndex}`;
+    setAnswers((prev) => ({ ...prev, [key]: optionIndex }));
   };
 
   const toggleReviewMark = () => {
-    const questionKey = `${currentSubjectIndex}-${currentQuestionIndex}`;
+    const key = `${currentSubjectIndex}-${currentQuestionIndex}`;
     setReviewMarked((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(questionKey)) newSet.delete(questionKey);
-      else newSet.add(questionKey);
+      newSet.has(key) ? newSet.delete(key) : newSet.add(key);
       return newSet;
     });
   };
 
   const markQuestionVisited = (subjectIndex, questionIndex) => {
-    const questionKey = `${subjectIndex}-${questionIndex}`;
-    setVisitedQuestions((prev) => new Set([...prev, questionKey]));
+    const key = `${subjectIndex}-${questionIndex}`;
+    setVisitedQuestions((prev) => new Set([...prev, key]));
   };
 
   const goToQuestion = (subjectIndex, questionIndex) => {
     setCurrentSubjectIndex(subjectIndex);
     setCurrentQuestionIndex(questionIndex);
     markQuestionVisited(subjectIndex, questionIndex);
-  };
-
-  const handleQuestionSelect = (subjectIndex, questionIndex) => {
-    goToQuestion(subjectIndex, questionIndex);
     setShowMobileSidebar(false);
   };
 
-  const toggleMobileSidebar = () => {
-    setShowMobileSidebar(!showMobileSidebar);
-  };
-
   const goToNextQuestion = () => {
-    const currentSubject = examData.subjects[currentSubjectIndex];
+    if (!examData) return;
+    const subjects = Array.isArray(examData.subjects) ? examData.subjects : [];
+    if (subjects.length === 0) return;
+
+    const currentSubject = subjects[currentSubjectIndex] || { questions: [] };
     if (currentQuestionIndex < currentSubject.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       markQuestionVisited(currentSubjectIndex, currentQuestionIndex + 1);
-    } else if (currentSubjectIndex < examData.subjects.length - 1) {
+    } else if (currentSubjectIndex < subjects.length - 1) {
       setCurrentSubjectIndex((prev) => prev + 1);
       setCurrentQuestionIndex(0);
       markQuestionVisited(currentSubjectIndex + 1, 0);
@@ -301,11 +259,17 @@ const OthersExamRoom = () => {
   };
 
   const goToPreviousQuestion = () => {
+    if (!examData) return;
+    const subjects = Array.isArray(examData.subjects) ? examData.subjects : [];
+    if (subjects.length === 0) return;
+
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex((prev) => prev - 1);
       markQuestionVisited(currentSubjectIndex, currentQuestionIndex - 1);
     } else if (currentSubjectIndex > 0) {
-      const prevSubject = examData.subjects[currentSubjectIndex - 1];
+      const prevSubject = subjects[currentSubjectIndex - 1] || {
+        questions: [],
+      };
       setCurrentSubjectIndex((prev) => prev - 1);
       setCurrentQuestionIndex(prevSubject.questions.length - 1);
       markQuestionVisited(
@@ -316,42 +280,15 @@ const OthersExamRoom = () => {
   };
 
   const isLastQuestion = () => {
-    const lastSubjectIndex = examData.subjects.length - 1;
-    const lastQuestionIndex =
-      examData.subjects[lastSubjectIndex].questions.length - 1;
+    if (!examData) return true;
+    const subjects = Array.isArray(examData.subjects) ? examData.subjects : [];
+    if (subjects.length === 0) return true;
+    const lastSubjectIndex = subjects.length - 1;
+    const lastQuestionIndex = subjects[lastSubjectIndex].questions.length - 1;
     return (
       currentSubjectIndex === lastSubjectIndex &&
       currentQuestionIndex === lastQuestionIndex
     );
-  };
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!isFullscreen) {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          await elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) {
-          await elem.webkitRequestFullscreen();
-        } else if (elem.mozRequestFullScreen) {
-          await elem.mozRequestFullScreen();
-        } else if (elem.msRequestFullscreen) {
-          await elem.msRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          await document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          await document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-          await document.msExitFullscreen();
-        }
-      }
-    } catch (error) {
-      console.error("Fullscreen toggle error:", error);
-    }
   };
 
   const formatTime = (seconds) => {
@@ -364,6 +301,11 @@ const OthersExamRoom = () => {
   };
 
   if (!examData) return <div>Loading...</div>;
+
+  const subjects = Array.isArray(examData.subjects) ? examData.subjects : [];
+  const currentSubject = subjects[currentSubjectIndex] || { questions: [] };
+  const currentQuestion =
+    currentSubject.questions[currentQuestionIndex] || null;
 
   if (showStartConfirm) {
     return (
@@ -381,15 +323,14 @@ const OthersExamRoom = () => {
 
   return (
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden bg-white relative">
-      {/* Fullscreen Toggle Button - Always Visible */}
+      {/* Fullscreen Toggle */}
       <button
-        onClick={toggleFullscreen}
-        className={
-          `fixed right-4 z-50 p-3 bg-blue-600 text-white rounded-lg shadow-lg 
-     hover:bg-blue-700 transition-colors` +
-          (isFullscreen ? " top-16" : " top-4") // top-16 = 4rem/64px from top, adjust as you prefer
-        }
+        onClick={() => (isFullscreen ? exitFullscreen() : requestFullscreen())}
+        className={`fixed right-4 z-50 p-3 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors ${
+          isFullscreen ? "top-16" : "top-4"
+        }`}
         title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        disabled={examCompleted}
       >
         {isFullscreen ? (
           <svg
@@ -426,8 +367,8 @@ const OthersExamRoom = () => {
       {showMobileSidebar && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={toggleMobileSidebar}
-        ></div>
+          onClick={() => setShowMobileSidebar(false)}
+        />
       )}
 
       {/* Sidebar */}
@@ -446,19 +387,18 @@ const OthersExamRoom = () => {
           reviewMarked={reviewMarked}
           visitedQuestions={visitedQuestions}
           timeLeft={timeLeft}
-          goToQuestion={handleQuestionSelect}
+          goToQuestion={goToQuestion}
         />
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Mobile Header with Timer */}
+        {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b shadow-sm">
           <div className="flex items-center justify-between p-3">
             <button
-              onClick={toggleMobileSidebar}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
-              aria-label="Toggle navigation"
+              onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <svg
                 className="w-6 h-6 text-gray-700"
@@ -474,37 +414,30 @@ const OthersExamRoom = () => {
                 />
               </svg>
             </button>
-
-            {/* Timer */}
             <div className="flex flex-col items-center bg-blue-600 px-4 py-2 rounded-lg">
               <span className="text-2xl font-mono font-bold text-white">
                 {formatTime(timeLeft)}
               </span>
               <span className="text-xs text-blue-100">Time Remaining</span>
             </div>
-
             <button
               onClick={handleSubmitClick}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex-shrink-0"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
             >
               Submit
             </button>
           </div>
-
-          {/* Question Info Bar */}
-          <div className="px-3 py-2 bg-gray-50 border-t">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 font-medium">
-                Question {currentQuestionIndex + 1} of{" "}
-                {examData.subjects.reduce(
-                  (total, subject) => total + subject.questions.length,
-                  0
-                )}
-              </span>
-              <span className="text-gray-500 text-xs">
-                {examData.subjects[currentSubjectIndex].name}
-              </span>
-            </div>
+          <div className="px-3 py-2 bg-gray-50 border-t flex items-center justify-between text-sm">
+            <span className="text-gray-600 font-medium">
+              Question {currentQuestionIndex + 1} of{" "}
+              {subjects.reduce(
+                (sum, sub) => sum + (sub.questions?.length || 0),
+                0
+              )}
+            </span>
+            <span className="text-gray-500 text-xs">
+              {currentSubject.name || ""}
+            </span>
           </div>
         </div>
 
@@ -519,22 +452,24 @@ const OthersExamRoom = () => {
           />
         </div>
 
-        <QuestionDisplay
-          question={
-            examData.subjects[currentSubjectIndex].questions[
-              currentQuestionIndex
-            ]
-          }
-          answers={answers}
-          currentSubjectIndex={currentSubjectIndex}
-          currentQuestionIndex={currentQuestionIndex}
-          onAnswerSelect={handleAnswerSelect}
-          onToggleReview={toggleReviewMark}
-          onNext={goToNextQuestion}
-          onPrevious={goToPreviousQuestion}
-          reviewMarked={reviewMarked}
-          isLastQuestion={isLastQuestion()}
-        />
+        {currentQuestion ? (
+          <QuestionDisplay
+            question={currentQuestion}
+            answers={answers}
+            currentSubjectIndex={currentSubjectIndex}
+            currentQuestionIndex={currentQuestionIndex}
+            onAnswerSelect={handleAnswerSelect}
+            onToggleReview={toggleReviewMark}
+            onNext={goToNextQuestion}
+            onPrevious={goToPreviousQuestion}
+            reviewMarked={reviewMarked}
+            isLastQuestion={isLastQuestion()}
+          />
+        ) : (
+          <div className="p-4 text-center text-gray-600">
+            No questions available
+          </div>
+        )}
       </div>
 
       {showSubmitConfirm && (
