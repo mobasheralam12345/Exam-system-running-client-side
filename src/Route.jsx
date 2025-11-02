@@ -18,6 +18,7 @@ import AddBCSOthers from "./Pages/AdminDashboard/bcsOthers";
 import BCSOthersExam from "./Pages/BCSOthers/BCSOthersExam";
 import AddHSCOthers from "./Pages/AdminDashboard/hscOthers";
 import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
+import BankExam from "./Pages/BankExam/BankExam";
 import LiveExamsPage from "./Pages/LiveExam/liveExams";
 import AdminExamCreator from "./Pages/Admin/Exam-Creation/AdminExamCreator";
 import LiveExamInterface from "./Pages/LiveExamRoom";
@@ -54,6 +55,14 @@ const router = createBrowserRouter([
           <PrivateRoute>
             <Exam />
           </PrivateRoute>
+        ),
+      },
+      {
+        path: "/bank/all-questions",
+        element: (
+          <privateRoute>
+            <BankExam></BankExam>
+          </privateRoute>
         ),
       },
       {
