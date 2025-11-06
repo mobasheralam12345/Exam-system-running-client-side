@@ -1,10 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import HscSubjectWiseQuiz from "./HscSubjectWiseQuiz";
+import { useNavigate } from "react-router-dom";
 
-const HscSubjectWiseExam = ({ onSelect }) => {
-  const [selectedSubject, setSelectedSubject] = useState(""); // Default subject
-  const [totalQuestions, setTotalQuestions] = useState(); // Default question count
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+const HscSubjectWiseExam = () => {
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [totalQuestions, setTotalQuestions] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Auto redirect to homepage after 10 minutes of inactivity
+  useEffect(() => {
+    let timer;
+    if (!isLoading && !selectedSubject && !totalQuestions) {
+      timer = setTimeout(() => {
+        navigate("/");
+      }, 10 * 60 * 1000); // 10 minutes
+    }
+    return () => clearTimeout(timer);
+  }, [isLoading, selectedSubject, totalQuestions, navigate]);
 
   const handleSubjectChange = (e) => {
     setSelectedSubject(e.target.value);
@@ -14,21 +30,42 @@ const HscSubjectWiseExam = ({ onSelect }) => {
     setTotalQuestions(e.target.value);
   };
 
-  const handleProceed = () => {
-    if (selectedSubject && totalQuestions > 0) {
-      localStorage.setItem("hscSubject", selectedSubject);
-      localStorage.setItem("totalQuestions", totalQuestions);
-      onSelect(selectedSubject, totalQuestions);
-      Swal.fire({
-        position: "center",
-        title: "Your Exam is started",
-        showConfirmButton: false,
-        timer: 500,
-      });
-    } else {
+  const handleProceed = async () => {
+    const numQuestions = parseInt(totalQuestions, 10);
+    if (!selectedSubject || isNaN(numQuestions) || numQuestions <= 0) {
       Swal.fire(
         "Please select a subject and enter a valid number of questions before proceeding"
       );
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/hsc-questions/subject/${encodeURIComponent(
+          selectedSubject
+        )}/${numQuestions}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch questions");
+      }
+
+      const res = await response.json();
+      const examData = res.data;
+
+      // Reset selectors
+      setSelectedSubject("");
+      setTotalQuestions("");
+      setIsLoading(false);
+
+      // Pass examData to practice page
+      navigate("/exam/practice", { state: { examData } });
+    } catch (err) {
+      setIsLoading(false);
+      Swal.fire("Error", err.message, "error");
     }
   };
 
@@ -49,15 +86,14 @@ const HscSubjectWiseExam = ({ onSelect }) => {
           className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-black"
           value={selectedSubject}
           onChange={handleSubjectChange}
+          disabled={isLoading}
         >
           <option value="">Select Subject</option>
-
-          <option value="Bangla 1st Paper">Bangla 1st Paper</option>
-          <option value="Bangla 2nd Paper">Bangla 2nd Paper</option>
+          <option value="বাংলা ১ম পত্র">Bangla 1st Paper</option>
+          <option value="বাংলা ২য় পত্র">Bangla 2nd Paper</option>
           <option value="English 1st Paper">English 1st Paper</option>
           <option value="English 2nd Paper">English 2nd Paper</option>
           <option value="ICT">ICT</option>
-
           <option value="Higher Mathematics 1st Paper">
             Higher Mathematics 1st Paper
           </option>
@@ -70,7 +106,6 @@ const HscSubjectWiseExam = ({ onSelect }) => {
           <option value="Chemistry 2nd Paper">Chemistry 2nd Paper</option>
           <option value="Biology 1st Paper">Biology 1st Paper</option>
           <option value="Biology 2nd Paper">Biology 2nd Paper</option>
-
           <option value="Accounting 1st Paper">Accounting 1st Paper</option>
           <option value="Accounting 2nd Paper">Accounting 2nd Paper</option>
           <option value="Business Organization & Management 1st Paper">
@@ -87,7 +122,6 @@ const HscSubjectWiseExam = ({ onSelect }) => {
           </option>
           <option value="Economics 1st Paper">Economics 1st Paper</option>
           <option value="Economics 2nd Paper">Economics 2nd Paper</option>
-
           <option value="Civics 1st Paper">Civics 1st Paper</option>
           <option value="Civics 2nd Paper">Civics 2nd Paper</option>
           <option value="History 1st Paper">History 1st Paper</option>
@@ -110,48 +144,53 @@ const HscSubjectWiseExam = ({ onSelect }) => {
         <input
           type="number"
           id="totalQuestions"
-          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-white"
+          className="block w-full mt-2 border border-gray-300 rounded-lg p-4 text-black"
           value={totalQuestions}
           placeholder="Enter a Number from 1 to 100"
           onChange={handleQuestionsChange}
           min="1"
+          disabled={isLoading}
         />
       </div>
       <div className="mt-4 flex justify-center">
         <button
-          className="bg-green-500 border mx-auto w-full border-green-500 text-white px-4 py-2 text-lg rounded-lg transition-colors hover:bg-green-600"
+          className={`bg-green-500 border mx-auto w-full border-green-500 text-white px-4 py-2 text-lg rounded-lg transition-colors hover:bg-green-600 flex items-center justify-center ${
+            isLoading ? "cursor-not-allowed opacity-70" : ""
+          }`}
           onClick={handleProceed}
+          disabled={isLoading}
         >
-          Start Exam
+          {isLoading ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-6 w-6 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+              Loading...
+            </>
+          ) : (
+            "Start Exam"
+          )}
         </button>
       </div>
     </div>
   );
 };
 
-const QuizContainer = () => {
-  const [isQuizStarted, setIsQuizStarted] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [totalQuestions, setTotalQuestions] = useState(0);
-
-  const handleSelect = (subject, questions) => {
-    setSelectedSubject(subject);
-    setTotalQuestions(questions);
-    setIsQuizStarted(true);
-  };
-
-  return (
-    <div>
-      {!isQuizStarted ? (
-        <HscSubjectWiseExam onSelect={handleSelect} />
-      ) : (
-        <HscSubjectWiseQuiz
-          subject={selectedSubject}
-          totalQuestions={totalQuestions}
-        />
-      )}
-    </div>
-  );
-};
-
-export default QuizContainer;
+export default HscSubjectWiseExam;
