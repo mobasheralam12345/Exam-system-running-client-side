@@ -5,13 +5,13 @@ const AdminNavbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("jwtToken");
+    localStorage.removeItem("adminToken");
     localStorage.removeItem("adminInfo");
     navigate("/admin/login");
   };
 
   const isLoggedIn = () => {
-    return !!localStorage.getItem("jwtToken");
+    return !!localStorage.getItem("adminToken");
   };
 
   return (

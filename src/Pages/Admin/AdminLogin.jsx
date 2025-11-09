@@ -38,11 +38,11 @@ const AdminLogin = () => {
       }
 
       // Store token and admin info in localStorage
-      localStorage.setItem("jwtToken", data.token);
+      localStorage.setItem("adminToken", data.token);
       localStorage.setItem("adminInfo", JSON.stringify(data.admin));
 
-      // Redirect to admin management/dashboard
-      navigate("/admin/management");
+      // Redirect to admin dashboard
+      navigate("/admin");
     } catch (err) {
       setError(err.message);
     } finally {

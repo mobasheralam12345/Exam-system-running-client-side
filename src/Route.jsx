@@ -26,6 +26,7 @@ import AdminDashboard from "./Pages/Admin/AdminDashboard";
 import AdminManagement from "./Pages/Admin/AdminManagement";
 import AdminRegistration from "./Pages/Admin/AdminRegistration";
 import AdminLogin from "./Pages/Admin/AdminLogin";
+import AdminPrivateRoute from "./Pages/AdminPrivateRoute";
 
 const router = createBrowserRouter([
   {
@@ -89,25 +90,38 @@ const router = createBrowserRouter([
         element: <LiveExamsPage></LiveExamsPage>,
       },
       {
-        path: "/admin/create-exam",
-        element: <AdminExamCreator></AdminExamCreator>,
-      },
-      {
         path: "/Exam/Room/Live",
-        element: <LiveExamInterface></LiveExamInterface>,
+        element: (
+          <PrivateRoute>
+            <LiveExamInterface />
+          </PrivateRoute>
+        ),
       },
       {
         path: "/exam/live",
-        element: <LiveExamRoom></LiveExamRoom>,
+        element: (
+          <PrivateRoute>
+            <LiveExamRoom />
+          </PrivateRoute>
+        ),
       },
       {
         path: "/exam/practice",
-        element: <OthersExamRoom></OthersExamRoom>,
+        element: (
+          <PrivateRoute>
+            <OthersExamRoom />
+          </PrivateRoute>
+        ),
       },
       {
-        path: "/Exam/Review",
-        element: <ExamReview></ExamReview>,
+        path: "/exam/review",
+        element: (
+          <PrivateRoute>
+            <ExamReview />
+          </PrivateRoute>
+        ),
       },
+
       {
         path: "/Profile",
         element: (
@@ -118,11 +132,27 @@ const router = createBrowserRouter([
       },
       {
         path: "/admin",
-        element: <AdminDashboard></AdminDashboard>,
+        element: (
+          <AdminPrivateRoute>
+            <AdminDashboard />
+          </AdminPrivateRoute>
+        ),
       },
       {
         path: "/admin/management",
-        element: <AdminManagement></AdminManagement>,
+        element: (
+          <AdminPrivateRoute>
+            <AdminManagement />
+          </AdminPrivateRoute>
+        ),
+      },
+      {
+        path: "/admin/create-exam",
+        element: (
+          <AdminPrivateRoute>
+            <AdminExamCreator />
+          </AdminPrivateRoute>
+        ),
       },
       {
         path: "/admin/register",
