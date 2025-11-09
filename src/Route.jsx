@@ -7,18 +7,13 @@ import Login from "./Pages/Login/Login";
 import Register from "./Pages/Register/Register";
 import BcsExam from "./Pages/BcsExam/BcsExam";
 import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
-import SubjectWiseExam from "./Pages/BcsExam/subjectWiseBCS";
+import BcsSubjectWise from "./Pages/BcsExam/subjectWiseBCS";
 import HscExam from "../src/Pages/HscExam/HscExam";
 import HscSubjectWiseExam from "./Pages/HscExam/HscSubjectWiseExam";
-import AdminLogin from "./Pages/Admin/AdminLogin";
-import AddBCS from "./Pages/AdminDashboard/BCSExamAdmin";
-import AddHSC from "./Pages/AdminDashboard/HSCExam";
-import AdminHomePage from "./Pages/AdminDashboard/AdminHomePage";
-import AddBCSOthers from "./Pages/AdminDashboard/bcsOthers";
 import BCSOthersExam from "./Pages/BCSOthers/BCSOthersExam";
-import AddHSCOthers from "./Pages/AdminDashboard/hscOthers";
 import HSCOthersExam from "./Pages/HSCOthers/HSCOthersExam";
 import BankExam from "./Pages/BankExam/BankExam";
+import BankSubjectWise from "./Pages/BankExam/subjectwiseBank";
 import LiveExamsPage from "./Pages/LiveExam/liveExams";
 import AdminExamCreator from "./Pages/Admin/Exam-Creation/AdminExamCreator";
 import LiveExamInterface from "./Pages/LiveExamRoom";
@@ -27,6 +22,10 @@ import OthersExamRoom from "./Pages/ExamRoom/OthersExamRoom";
 import ExamReview from "./Pages/ExamReview";
 import Profile from "./Pages/Profile";
 import { i } from "framer-motion/client";
+import AdminDashboard from "./Pages/Admin/AdminDashboard";
+import AdminManagement from "./Pages/Admin/AdminManagement";
+import AdminRegistration from "./Pages/Admin/AdminRegistration";
+import AdminLogin from "./Pages/Admin/AdminLogin";
 
 const router = createBrowserRouter([
   {
@@ -50,32 +49,24 @@ const router = createBrowserRouter([
         element: <Register />,
       },
       {
-        path: "/exam",
-        element: (
-          <PrivateRoute>
-            <BcsExam />
-          </PrivateRoute>
-        ),
+        path: "/bcs/all-questions",
+        element: <BcsExam></BcsExam>,
+      },
+      {
+        path: "/bcs/subjectwise",
+        element: <BcsSubjectWise></BcsSubjectWise>,
       },
       {
         path: "/bank/all-questions",
-        element: (
-          <privateRoute>
-            <BankExam></BankExam>
-          </privateRoute>
-        ),
+        element: <BankExam></BankExam>,
+      },
+      {
+        path: "/bank/subjectwise",
+        element: <BankSubjectWise></BankSubjectWise>,
       },
       {
         path: "/about",
         element: <About />,
-      },
-      {
-        path: "/subjectwise-exam",
-        element: (
-          <PrivateRoute>
-            <SubjectWiseExam />
-          </PrivateRoute>
-        ),
       },
       {
         path: "/hsc/all-questions",
@@ -86,32 +77,8 @@ const router = createBrowserRouter([
         element: <HscSubjectWiseExam></HscSubjectWiseExam>,
       },
       {
-        path: "/admin",
-        element: <AdminLogin></AdminLogin>,
-      },
-      {
-        path: "/admin/BCS",
-        element: <AddBCS></AddBCS>,
-      },
-      {
-        path: "/admin/HSC",
-        element: <AddHSC></AddHSC>,
-      },
-      {
-        path: "/admin-dashboard",
-        element: <AdminHomePage></AdminHomePage>,
-      },
-      {
-        path: "/admin/BCS/others",
-        element: <AddBCSOthers></AddBCSOthers>,
-      },
-      {
         path: "/BCSOthersExam",
         element: <BCSOthersExam></BCSOthersExam>,
-      },
-      {
-        path: "/admin/HSC/others",
-        element: <AddHSCOthers></AddHSCOthers>,
       },
       {
         path: "/HSCOthersExam",
@@ -148,6 +115,22 @@ const router = createBrowserRouter([
             <Profile />
           </PrivateRoute>
         ),
+      },
+      {
+        path: "/admin",
+        element: <AdminDashboard></AdminDashboard>,
+      },
+      {
+        path: "/admin/management",
+        element: <AdminManagement></AdminManagement>,
+      },
+      {
+        path: "/admin/register",
+        element: <AdminRegistration></AdminRegistration>,
+      },
+      {
+        path: "/admin/login",
+        element: <AdminLogin></AdminLogin>,
       },
     ],
   },

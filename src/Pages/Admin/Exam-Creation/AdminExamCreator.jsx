@@ -2,6 +2,7 @@ import React, { useState, useReducer, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import AdminNavbar from "../AdminNavbar";
 
 import {
   ChevronLeftIcon,
@@ -450,6 +451,7 @@ const AdminExamCreator = () => {
 
   return (
     <div>
+      <AdminNavbar />
       <div className="min-h-screen bg-gray-50 sm:py-8">
         <div className="max-w-7xl pt-4 mx-auto">
           {/* Custom Alert Modals */}

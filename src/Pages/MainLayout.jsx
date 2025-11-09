@@ -1,15 +1,27 @@
-import { Outlet } from "react-router-dom";
-import Footer from "./Footer";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar/Navbar";
+import Footer from "./Footer";
 
 const MainLayout = () => {
+  const location = useLocation();
+
+  const hideNavbarFooterPaths = [
+    "/admin",
+    "/admin/management",
+    "/admin/register",
+    "/admin/login",
+    "/admin/create-exam",
+  ];
+
+  const shouldHide = hideNavbarFooterPaths.includes(location.pathname);
+
   return (
     <div>
-      <Navbar></Navbar>
+      {!shouldHide && <Navbar />}
       <div className="min-h-screen mt-5">
-        <Outlet></Outlet>
+        <Outlet />
       </div>
-      <Footer></Footer>
+      {!shouldHide && <Footer />}
     </div>
   );
 };
