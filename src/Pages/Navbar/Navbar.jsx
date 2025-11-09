@@ -193,17 +193,11 @@ const Navbar = () => {
                   <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
                   <div className="absolute right-0 mt-2 w-48 lg:w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
                     <div className="py-2">
-                      <DropdownItem to="/exam">All Questions Exam</DropdownItem>
-                      <DropdownItem to="/subjectwise-exam">
-                        Subject Wise Exam
+                      <DropdownItem to="bcs/all-questions">
+                        All Questions Exam
                       </DropdownItem>
-                      <DropdownItem
-                        to="/BCSOthersExam"
-                        onClick={() =>
-                          localStorage.removeItem("selectedOptions")
-                        }
-                      >
-                        Others
+                      <DropdownItem to="bcs/subjectwise">
+                        Subject Wise Exam
                       </DropdownItem>
                     </div>
                   </div>
@@ -245,14 +239,6 @@ const Navbar = () => {
                       <DropdownItem to="/hsc/subjectwise">
                         Subject Wise Exam
                       </DropdownItem>
-                      <DropdownItem
-                        to="/HSCOthersExam"
-                        onClick={() =>
-                          localStorage.removeItem("selectedOptions")
-                        }
-                      >
-                        Others
-                      </DropdownItem>
                     </div>
                   </div>
                 </div>
@@ -292,14 +278,6 @@ const Navbar = () => {
                       </DropdownItem>
                       <DropdownItem to="/bank/subjectwise">
                         Subject Wise Exam
-                      </DropdownItem>
-                      <DropdownItem
-                        to="/BankOthersExam"
-                        onClick={() =>
-                          localStorage.removeItem("selectedOptions")
-                        }
-                      >
-                        Others
                       </DropdownItem>
                     </div>
                   </div>
