@@ -62,7 +62,14 @@ const HscSubjectWiseExam = () => {
       setIsLoading(false);
 
       // Pass examData to practice page
-      navigate("/exam/practice", { state: { examData } });
+      navigate("/exam/practice", {
+        state: {
+          examData,
+          examType: "HSC",
+          category: "subject-wise",
+          title: `HSC ${selectedSubject} Exam`,
+        },
+      });
     } catch (err) {
       setIsLoading(false);
       Swal.fire("Error", err.message, "error");

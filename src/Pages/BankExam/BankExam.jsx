@@ -22,7 +22,13 @@ const YearSelector = () => {
         setLoading(false);
         if (data.success) {
           navigate("/exam/practice", {
-            state: { examData: data.data, year: selectedYear },
+            state: {
+              examData: data.data,
+              examType: "Bank",
+              category: "full",
+              title: `${selectedYear} Bank Exam`,
+              year: selectedYear,
+            },
           });
           setSelectedYear("");
           setLoading(false);

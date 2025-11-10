@@ -12,7 +12,7 @@ const YearSelector = () => {
 
   const handleProceed = () => {
     if (!selectedYear) {
-      Swal.fire("Please select a year before proceeding");
+      Swal.fire("Please select a BCS year before proceeding");
       return;
     }
     setLoading(true);
@@ -22,7 +22,13 @@ const YearSelector = () => {
         setLoading(false);
         if (data.success) {
           navigate("/exam/practice", {
-            state: { examData: data.data, year: selectedYear },
+            state: {
+              examData: data.data,
+              examType: "BCS",
+              category: "full",
+              title: `${selectedYear} BCS Exam`,
+              year: selectedYear,
+            },
           });
           setSelectedYear("");
           setLoading(false);

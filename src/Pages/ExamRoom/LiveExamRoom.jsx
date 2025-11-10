@@ -166,16 +166,168 @@ const LiveExamRoom = () => {
     }
   };
 
+  // ✅ NEW: Calculate exam results
+  const calculateExamResults = (examData, answers, reviewMarked) => {
+    let correctCount = 0;
+    let wrongCount = 0;
+    let totalMarks = 0;
+    let negativeMarksDeducted = 0;
+
+    const difficultyStats = {
+      easy: { correct: 0, wrong: 0, skipped: 0 },
+      medium: { correct: 0, wrong: 0, skipped: 0 },
+      hard: { correct: 0, wrong: 0, skipped: 0 },
+    };
+
+    const subjectPerformance = [];
+    let totalPossibleMarks = 0;
+
+    examData.subjects.forEach((subject, subjectIndex) => {
+      let subjectCorrect = 0;
+      let subjectWrong = 0;
+      let subjectSkipped = 0;
+      let subjectAttempted = 0;
+      let subjectMarks = 0;
+      let subjectMaxMarks = 0;
+
+      subject.questions.forEach((question, questionIndex) => {
+        const questionKey = `${subjectIndex}-${questionIndex}`;
+        const userAnswer = answers[questionKey];
+        const difficulty = question.difficulty;
+        const marks = question.marks || 1;
+
+        subjectMaxMarks += marks;
+        totalPossibleMarks += marks;
+
+        if (userAnswer !== undefined) {
+          subjectAttempted++;
+
+          if (userAnswer === question.correctAnswer) {
+            correctCount++;
+            subjectCorrect++;
+            totalMarks += marks;
+            subjectMarks += marks;
+            difficultyStats[difficulty].correct++;
+          } else {
+            wrongCount++;
+            subjectWrong++;
+            difficultyStats[difficulty].wrong++;
+
+            if (question.negativeMarks) {
+              totalMarks -= question.negativeMarks;
+              subjectMarks -= question.negativeMarks;
+              negativeMarksDeducted += question.negativeMarks;
+            }
+          }
+        } else {
+          subjectSkipped++;
+          difficultyStats[difficulty].skipped++;
+        }
+      });
+
+      subjectPerformance.push({
+        subjectName: subject.name,
+        totalQuestions: subject.questions.length,
+        attempted: subjectAttempted,
+        correct: subjectCorrect,
+        wrong: subjectWrong,
+        skipped: subjectSkipped,
+        marksObtained: Math.max(0, subjectMarks),
+        maxMarks: subjectMaxMarks,
+      });
+    });
+
+    totalMarks = Math.max(0, totalMarks);
+    const percentage =
+      totalPossibleMarks > 0
+        ? parseFloat(((totalMarks / totalPossibleMarks) * 100).toFixed(2))
+        : 0;
+
+    return {
+      correctAnswers: correctCount,
+      wrongAnswers: wrongCount,
+      totalMarksObtained: totalMarks,
+      totalPossibleMarks: totalPossibleMarks,
+      percentage: percentage,
+      negativeMarksDeducted: negativeMarksDeducted,
+      difficultyStats,
+      subjectPerformance,
+    };
+  };
+
+  // ✅ UPDATED: handleAutoSubmit with calculations and proper structure
   async function handleAutoSubmit(reason) {
     if (examCompleted) return;
 
+    // Get user data from localStorage
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    const userId = userInfo?.id;
+    const username = userInfo?.username;
+    const email = userInfo?.email;
+
+    // If userId is missing, alert and stop
+    if (!userId || !username) {
+      alert("User not logged in. Please login again.");
+      navigate("/login");
+      return;
+    }
+
+    // Calculate statistics
+    const totalQuestions = examData.subjects.reduce(
+      (total, subject) => total + subject.questions.length,
+      0
+    );
+    const attemptedCount = Object.keys(answers).length;
+    const skippedCount = totalQuestions - attemptedCount;
+    const markedForReviewCount = reviewMarked.size;
+
+    const timeConsumed = examData.duration * 60 - timeLeft;
+    const startTime = new Date(Date.now() - timeConsumed * 1000);
+
+    const results = calculateExamResults(examData, answers, reviewMarked);
+
     const submissionData = {
       examId: examData._id,
-      userId: location.state?.userData?._id,
-      answers,
-      timeConsumed: examData.duration * 60 - timeLeft,
-      completionReason: reason,
-      submittedAt: new Date().toISOString(),
+      userId: userId,
+      username: username,
+      email: email,
+
+      examSnapshot: {
+        title: examData.title,
+        examType: examData.examType,
+        duration: examData.duration,
+        tags: examData.tags || [],
+      },
+
+      answers: answers,
+
+      questionStats: {
+        totalQuestions: totalQuestions,
+        attempted: attemptedCount,
+        skipped: skippedCount,
+        markedForReview: markedForReviewCount,
+      },
+
+      resultMetrics: {
+        correctAnswers: results.correctAnswers,
+        wrongAnswers: results.wrongAnswers,
+        totalMarksObtained: results.totalMarksObtained,
+        totalPossibleMarks: results.totalPossibleMarks,
+        percentage: results.percentage,
+        negativeMarksDeducted: results.negativeMarksDeducted,
+      },
+
+      difficultyStats: results.difficultyStats,
+      subjectWisePerformance: results.subjectPerformance,
+
+      timeTracking: {
+        timeAllocated: examData.duration * 60,
+        timeConsumed: timeConsumed,
+        timeRemaining: timeLeft,
+        startedAt: startTime,
+        submittedAt: new Date(),
+      },
+
       violations: {
         total: violationCounts.total,
         fullscreenExit: violationCounts.fullscreenExit,
@@ -183,37 +335,54 @@ const LiveExamRoom = () => {
         escapeKey: violationCounts.escapeKey,
         windowBlur: violationCounts.windowBlur,
       },
+
+      completionReason: reason,
+
+      metadata: {
+        userAgent: navigator.userAgent,
+        deviceType: /Mobile|Android|iPhone/i.test(navigator.userAgent)
+          ? "mobile"
+          : "desktop",
+      },
     };
+
+    // ✅ Log what we're sending
+    console.log(
+      "📤 Sending submission data:",
+      JSON.stringify(submissionData, null, 2)
+    );
 
     setExamCompleted(true);
 
     try {
       setSubmissionLoading(true);
-      const response = await fetch("/api/exam-submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submissionData),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/liveExam/submit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(submissionData),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
+        console.log("✅ Success:", result);
         clearExamStorage();
         await exitFullscreen();
         setTimeout(() => {
           navigate("/");
         }, 2000);
       } else {
+        const error = await response.json();
+        console.error("❌ Backend error:", error);
+        alert(`Submission failed: ${error.message}`);
         await exitFullscreen();
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
       }
     } catch (error) {
-      console.error("Submission error:", error);
+      console.error("❌ Network error:", error);
+      alert("Network error. Please try again.");
       await exitFullscreen();
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
     } finally {
       setSubmissionLoading(false);
     }

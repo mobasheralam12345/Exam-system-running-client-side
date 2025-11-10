@@ -1,1123 +1,613 @@
-import React, { useState, useEffect } from "react";
+// pages/UserDashboard.jsx
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FiUser,
+  FiMail,
+  FiCalendar,
+  FiAward,
+  FiEye,
+  FiBarChart2,
+  FiChevronLeft,
+  FiChevronRight,
+  FiSettings,
+  FiLogOut,
+  FiTrendingUp,
+  FiCheckCircle,
+  FiXCircle,
+  FiPhone,
+  FiMapPin,
+  FiBook,
+} from "react-icons/fi";
 
-const ProfilePage = () => {
-  const [user, setUser] = useState({});
+const Profile = () => {
+  const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null);
+  const [liveExams, setLiveExams] = useState([]);
+  const [hscExams, setHscExams] = useState([]);
+  const [bcsExams, setBcsExams] = useState([]);
+  const [bankExams, setBankExams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({});
-  const [activeTab, setActiveTab] = useState("personal");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Fetch user profile data
+  // Pagination states
+  const [livePage, setLivePage] = useState(0);
+  const [hscPage, setHscPage] = useState(0);
+  const [bcsPage, setBcsPage] = useState(0);
+  const [bankPage, setBankPage] = useState(0);
+
+  const ITEMS_PER_PAGE = 5;
+
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserData = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        const storedUserInfo = JSON.parse(localStorage.getItem("userInfo"));
+        setUserInfo(storedUserInfo);
 
-        // Get current user ID (implement based on your auth system)
-        const userId = localStorage.getItem("userId") || "mock-user-id";
+        const userId = storedUserInfo?._id || storedUserInfo?.id;
 
-        // For now, use mock data with API structure ready for future implementation
-        const mockUserData = await getMockUserData();
+        if (!userId) {
+          navigate("/login");
+          return;
+        }
 
-        // TODO: Replace with actual API calls when ready
-        // const response = await fetch(`${BACKEND_URL}/user/profile/${userId}`);
-        // if (!response.ok) throw new Error('Failed to fetch profile');
-        // const data = await response.json();
-        // setUser(data.user);
+        // Fetch Live Exam submissions
+        const liveRes = await fetch(
+          `${
+            import.meta.env.VITE_BACKEND_URL
+          }/liveExam/submission/user/${userId}`
+        );
+        const liveData = await liveRes.json();
+        setLiveExams(liveData.submissions || []);
 
-        setUser(mockUserData.user);
-        setEditForm(mockUserData.user);
+        // Fetch Practice Exam submissions
+        const practiceRes = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/practice-exam/user/${userId}`
+        );
+        const practiceData = await practiceRes.json();
+
+        // Categorize practice exams
+        const submissions = practiceData.submissions || [];
+        setHscExams(
+          submissions.filter((s) => s.examSnapshot.examType === "HSC")
+        );
+        setBcsExams(
+          submissions.filter((s) => s.examSnapshot.examType === "BCS")
+        );
+        setBankExams(
+          submissions.filter((s) => s.examSnapshot.examType === "Bank")
+        );
+
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching profile:", error);
-        setError(error.message);
-      } finally {
+        console.error("Error fetching user data:", error);
         setLoading(false);
       }
     };
 
-    fetchUserProfile();
-  }, []);
+    fetchUserData();
+  }, [navigate]);
 
-  // Mock data function (matches API structure)
-  const getMockUserData = async () => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    return {
-      user: {
-        _id: "user_123",
-        username: "john_doe_bd",
-        email: "john.doe@example.com",
-        fullName: "John Doe",
-        phone: "+880 1712 345678",
-        dateOfBirth: "1995-05-15",
-        gender: "Male",
-        address: "Dhaka, Bangladesh",
-        institution: "University of Dhaka",
-        department: "Computer Science and Engineering",
-        studentId: "CSE-2019-123",
-        profilePicture: null,
-        joinDate: "2024-01-15T10:30:00Z",
-        lastLogin: "2024-07-25T14:30:00Z",
-        isVerified: true,
-        status: "active",
-        bio: "Computer Science student passionate about technology and learning. Preparing for BCS and other competitive exams.",
-        socialLinks: {
-          facebook: "",
-          linkedin: "",
-          twitter: "",
-        },
-        preferences: {
-          notifications: true,
-          newsletter: true,
-          examReminders: true,
-          darkMode: false,
-          language: "English",
-        },
-      },
-    };
-  };
-
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing);
-    if (!isEditing) {
-      setEditForm({ ...user });
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleNestedInputChange = (section, key, value) => {
-    setEditForm((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [key]: value,
-      },
-    }));
-  };
-
-  const handlePreferenceChange = (key) => {
-    setEditForm((prev) => ({
-      ...prev,
-      preferences: {
-        ...prev.preferences,
-        [key]: !prev.preferences[key],
-      },
-    }));
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${BACKEND_URL}/user/profile/${user._id}`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   },
-      //   body: JSON.stringify(editForm)
-      // });
-
-      // if (!response.ok) throw new Error('Failed to update profile');
-
-      setUser(editForm);
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("userInfo");
+    navigate("/login");
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   };
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  // Calculate overall statistics
+  const allExams = [...liveExams, ...hscExams, ...bcsExams, ...bankExams];
+  const totalExams = allExams.length;
+  const averageScore =
+    totalExams > 0
+      ? (
+          allExams.reduce(
+            (sum, exam) => sum + exam.resultMetrics.percentage,
+            0
+          ) / totalExams
+        ).toFixed(1)
+      : 0;
+  const totalCorrect = allExams.reduce(
+    (sum, exam) => sum + exam.resultMetrics.correctAnswers,
+    0
+  );
+  const totalWrong = allExams.reduce(
+    (sum, exam) => sum + exam.resultMetrics.wrongAnswers,
+    0
+  );
+
+  const ExamCard = ({ exam, type }) => {
+    const isLive = type === "live";
+    const snapshot = exam.examSnapshot;
+    const metrics = exam.resultMetrics;
+
+    return (
+      <div className="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-indigo-300">
+        {/* Card Header */}
+        <div
+          className={`p-6 ${
+            metrics.percentage >= 80
+              ? "bg-gradient-to-br from-green-50 to-emerald-50"
+              : metrics.percentage >= 60
+              ? "bg-gradient-to-br from-blue-50 to-cyan-50"
+              : metrics.percentage >= 40
+              ? "bg-gradient-to-br from-amber-50 to-orange-50"
+              : "bg-gradient-to-br from-red-50 to-pink-50"
+          }`}
+        >
+          <h3 className="font-bold text-gray-900 text-xl mb-3 line-clamp-2 min-h-[56px] group-hover:text-indigo-600 transition-colors">
+            {snapshot.title}
+          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            {!isLive && snapshot.category && (
+              <span className="px-3 py-1.5 bg-white text-indigo-700 text-xs font-bold rounded-full shadow-sm border border-indigo-200">
+                {snapshot.category === "full" ? "Full Exam" : "Subject-wise"}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 text-gray-600 text-sm font-semibold bg-white px-3 py-1.5 rounded-full shadow-sm">
+              <FiCalendar size={14} />
+              {formatDate(exam.createdAt)}
+            </span>
+          </div>
+        </div>
+
+        {/* Score Section */}
+        <div className="px-6 py-5 bg-gray-50">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-gray-600 font-semibold text-sm">
+              Your Score
+            </span>
+            <div
+              className={`px-4 py-2 rounded-xl font-bold text-2xl ${
+                metrics.percentage >= 80
+                  ? "bg-green-100 text-green-700"
+                  : metrics.percentage >= 60
+                  ? "bg-blue-100 text-blue-700"
+                  : metrics.percentage >= 40
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {metrics.percentage}%
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
+              <FiCheckCircle
+                size={18}
+                className="text-green-600 mx-auto mb-1"
+              />
+              <p className="text-xs text-gray-500 mb-1 font-medium">Correct</p>
+              <p className="text-lg font-bold text-green-600">
+                {metrics.correctAnswers}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
+              <FiXCircle size={18} className="text-red-600 mx-auto mb-1" />
+              <p className="text-xs text-gray-500 mb-1 font-medium">Wrong</p>
+              <p className="text-lg font-bold text-red-600">
+                {metrics.wrongAnswers}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
+              <FiAward size={18} className="text-indigo-600 mx-auto mb-1" />
+              <p className="text-xs text-gray-500 mb-1 font-medium">Marks</p>
+              <p className="text-lg font-bold text-indigo-600">
+                {metrics.totalMarksObtained.toFixed(0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className={`p-6 bg-white ${isLive ? "space-y-3" : ""}`}>
+          <button
+            onClick={() => navigate(`/exam-review/${exam._id}`)}
+            className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
+          >
+            <FiEye size={20} />
+            Show Review
+          </button>
+
+          {isLive && (
+            <button
+              onClick={() => navigate(`/live-exam/standings/${exam.examId}`)}
+              className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg text-base"
+            >
+              <FiBarChart2 size={20} />
+              View Standings
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const ExamSection = ({
+    title,
+    exams,
+    page,
+    setPage,
+    type,
+    icon,
+    gradientFrom,
+    gradientTo,
+  }) => {
+    const startIndex = page * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedExams = exams.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(exams.length / ITEMS_PER_PAGE);
+
+    if (exams.length === 0) return null;
+
+    return (
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div
+              className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} shadow-lg`}
+            >
+              {icon}
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
+              <p className="text-sm text-gray-600 font-semibold mt-1">
+                {exams.length} exams completed
+              </p>
+            </div>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-3 bg-white rounded-2xl shadow-lg p-2 border border-gray-200">
+              <button
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+                className="p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <FiChevronLeft size={22} />
+              </button>
+              <span className="text-base font-bold text-gray-700 px-4">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                disabled={page >= totalPages - 1}
+                className="p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <FiChevronRight size={22} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {paginatedExams.map((exam) => (
+            <ExamCard key={exam._id} exam={exam} type={type} />
+          ))}
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
-            <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
-              <div className="flex items-center space-x-6">
-                <div className="w-32 h-32 bg-gray-200 rounded-full"></div>
-                <div className="flex-1">
-                  <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded mb-4"></div>
-              ))}
-            </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-200"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Error Loading Profile
-            </h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
+          <p className="text-gray-700 font-bold text-xl">
+            Loading your dashboard...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Profile Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-6 sm:space-y-0 sm:space-x-8">
-            {/* Profile Picture */}
-            <div className="relative">
-              <div className="w-32 h-32 bg-gradient-to-br from-gray-700 to-gray-900 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                {user.profilePicture ? (
-                  <img
-                    src={user.profilePicture}
-                    alt={user.fullName}
-                    className="w-32 h-32 rounded-full object-cover"
-                  />
-                ) : (
-                  user.fullName?.charAt(0) || user.username?.charAt(0) || "U"
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-12">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 shadow-md sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            <div className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              My Dashboard
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/settings")}
+                className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all shadow-sm"
+              >
+                <FiSettings size={20} />
+                <span className="hidden sm:inline">Settings</span>
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-md"
+                >
+                  <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center text-base font-bold">
+                    {userInfo?.username?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <span className="hidden md:inline">
+                    {userInfo?.username || "User"}
+                  </span>
+                </button>
+
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50">
+                    <button
+                      onClick={() => {
+                        navigate("/profile");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full px-5 py-3 text-left hover:bg-indigo-50 flex items-center gap-3 text-gray-700 font-semibold transition-colors"
+                    >
+                      <FiUser size={20} />
+                      View Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate("/settings");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full px-5 py-3 text-left hover:bg-indigo-50 flex items-center gap-3 text-gray-700 font-semibold transition-colors"
+                    >
+                      <FiSettings size={20} />
+                      Settings
+                    </button>
+                    <div className="border-t border-gray-200 my-2"></div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-5 py-3 text-left hover:bg-red-50 flex items-center gap-3 text-red-600 font-semibold transition-colors"
+                    >
+                      <FiLogOut size={20} />
+                      Logout
+                    </button>
+                  </div>
                 )}
               </div>
-              {user.isVerified && (
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        {/* User Profile Card */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-10 border border-gray-200">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+            {/* Profile Image */}
+            <div className="relative">
+              {userInfo?.profileImage ? (
+                <img
+                  src={userInfo.profileImage}
+                  alt="Profile"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-indigo-200 shadow-lg"
+                />
+              ) : (
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-5xl font-bold shadow-lg border-4 border-white">
+                  {userInfo?.username?.charAt(0).toUpperCase() || "U"}
                 </div>
               )}
+              <div className="absolute bottom-0 right-0 w-10 h-10 bg-green-500 rounded-full border-4 border-white shadow-lg"></div>
             </div>
 
-            {/* User Info */}
-            <div className="flex-1 text-center sm:text-left">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {user.fullName || user.username}
-                  </h1>
-                  <p className="text-lg text-gray-600 mb-1">@{user.username}</p>
-                  <p className="text-gray-600 mb-2">{user.email}</p>
-
-                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 mb-4">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {user.status === "active" ? "✓ Active" : "✗ Inactive"}
-                    </span>
-                    {user.isVerified && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        ✓ Verified
-                      </span>
-                    )}
-                  </div>
+            {/* User Info Grid */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <FiUser className="text-indigo-600" size={20} />
+                  <span className="text-sm font-semibold text-gray-600">
+                    Username
+                  </span>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  {isEditing ? (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={handleSaveProfile}
-                        className="px-6 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center space-x-2 shadow-sm"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span>Save Changes</span>
-                      </button>
-                      <button
-                        onClick={handleEditToggle}
-                        className="px-6 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors shadow-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleEditToggle}
-                      className="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2 shadow-sm"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                      <span>Edit Profile</span>
-                    </button>
-                  )}
-                </div>
+                <p className="text-lg font-bold text-gray-900">
+                  {userInfo?.username || "N/A"}
+                </p>
               </div>
 
-              {/* Bio */}
-              {user.bio && (
-                <div className="mb-4">
-                  <p className="text-gray-700 text-base leading-relaxed max-w-2xl">
-                    {user.bio}
-                  </p>
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <FiUser className="text-indigo-600" size={20} />
+                  <span className="text-sm font-semibold text-gray-600">
+                    Full Name
+                  </span>
                 </div>
-              )}
+                <p className="text-lg font-bold text-gray-900">
+                  {userInfo?.fullName || "N/A"}
+                </p>
+              </div>
 
-              {/* Member Info */}
-              <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 space-x-6">
-                <span className="flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Joined {formatDate(user.joinDate)}
-                </span>
-                <span className="flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Last active {formatDateTime(user.lastLogin)}
-                </span>
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <FiMail className="text-indigo-600" size={20} />
+                  <span className="text-sm font-semibold text-gray-600">
+                    Email
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 truncate">
+                  {userInfo?.email || "N/A"}
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <FiPhone className="text-indigo-600" size={20} />
+                  <span className="text-sm font-semibold text-gray-600">
+                    Phone
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">
+                  {userInfo?.phone || "N/A"}
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <FiBook className="text-indigo-600" size={20} />
+                  <span className="text-sm font-semibold text-gray-600">
+                    College/University
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 truncate">
+                  {userInfo?.college || userInfo?.university || "N/A"}
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <FiMapPin className="text-indigo-600" size={20} />
+                  <span className="text-sm font-semibold text-gray-600">
+                    Address
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 truncate">
+                  {userInfo?.address || "N/A"}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          {/* Navigation Tabs */}
-          <div className="border-b border-gray-100">
-            <nav className="flex space-x-8 px-6">
-              {[
-                { id: "personal", name: "Personal Information", icon: "👤" },
-                { id: "academic", name: "Academic Details", icon: "🎓" },
-                { id: "preferences", name: "Preferences", icon: "⚙️" },
-                { id: "account", name: "Account Security", icon: "🔒" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? "border-indigo-500 text-indigo-600 bg-white"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200 bg-white"
-                  }`}
-                >
-                  <span className="mr-2">{tab.icon}</span>
-                  {tab.name}
-                </button>
-              ))}
-            </nav>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-indigo-600">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-4 bg-indigo-100 rounded-2xl">
+                <FiAward size={28} className="text-indigo-600" />
+              </div>
+            </div>
+            <p className="text-gray-600 text-sm font-bold mb-2">Total Exams</p>
+            <p className="text-4xl font-extrabold text-gray-900">
+              {totalExams}
+            </p>
           </div>
 
-          <div className="p-8">
-            {/* Personal Information Tab */}
-            {activeTab === "personal" && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                    Personal Information
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Full Name
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="fullName"
-                          value={editForm.fullName || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.fullName || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Username
-                      </label>
-                      <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                        @{user.username}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Email Address
-                      </label>
-                      <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                        {user.email}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Phone Number
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="phone"
-                          value={editForm.phone || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.phone || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Date of Birth
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="date"
-                          name="dateOfBirth"
-                          value={editForm.dateOfBirth || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.dateOfBirth
-                            ? formatDate(user.dateOfBirth)
-                            : "Not provided"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Gender
-                      </label>
-                      {isEditing ? (
-                        <select
-                          name="gender"
-                          value={editForm.gender || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        >
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
-                          <option value="Prefer not to say">
-                            Prefer not to say
-                          </option>
-                        </select>
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.gender || "Not specified"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Address
-                      </label>
-                      {isEditing ? (
-                        <textarea
-                          name="address"
-                          rows="3"
-                          value={editForm.address || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="Enter your full address"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.address || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Bio
-                      </label>
-                      {isEditing ? (
-                        <textarea
-                          name="bio"
-                          rows="4"
-                          value={editForm.bio || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="Tell us about yourself..."
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.bio || "No bio provided"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-green-600">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-4 bg-green-100 rounded-2xl">
+                <FiTrendingUp size={28} className="text-green-600" />
               </div>
-            )}
+            </div>
+            <p className="text-gray-600 text-sm font-bold mb-2">
+              Average Score
+            </p>
+            <p className="text-4xl font-extrabold text-gray-900">
+              {averageScore}%
+            </p>
+          </div>
 
-            {/* Academic Details Tab */}
-            {activeTab === "academic" && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                    Academic Information
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Institution
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="institution"
-                          value={editForm.institution || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="e.g., University of Dhaka"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.institution || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Department/Faculty
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="department"
-                          value={editForm.department || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="e.g., Computer Science and Engineering"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.department || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Student/Employee ID
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="studentId"
-                          value={editForm.studentId || ""}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="e.g., CSE-2019-123"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.studentId || "Not provided"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-6">
-                    Social Links
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Facebook
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="url"
-                          value={editForm.socialLinks?.facebook || ""}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "socialLinks",
-                              "facebook",
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="https://facebook.com/username"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.socialLinks?.facebook ? (
-                            <a
-                              href={user.socialLinks.facebook}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 hover:underline"
-                            >
-                              View Profile
-                            </a>
-                          ) : (
-                            "Not provided"
-                          )}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        LinkedIn
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="url"
-                          value={editForm.socialLinks?.linkedin || ""}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "socialLinks",
-                              "linkedin",
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="https://linkedin.com/in/username"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.socialLinks?.linkedin ? (
-                            <a
-                              href={user.socialLinks.linkedin}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 hover:underline"
-                            >
-                              View Profile
-                            </a>
-                          ) : (
-                            "Not provided"
-                          )}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Twitter
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="url"
-                          value={editForm.socialLinks?.twitter || ""}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "socialLinks",
-                              "twitter",
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="https://twitter.com/username"
-                        />
-                      ) : (
-                        <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg">
-                          {user.socialLinks?.twitter ? (
-                            <a
-                              href={user.socialLinks.twitter}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 hover:underline"
-                            >
-                              View Profile
-                            </a>
-                          ) : (
-                            "Not provided"
-                          )}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-blue-600">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-4 bg-blue-100 rounded-2xl">
+                <FiCheckCircle size={28} className="text-blue-600" />
               </div>
-            )}
+            </div>
+            <p className="text-gray-600 text-sm font-bold mb-2">
+              Correct Answers
+            </p>
+            <p className="text-4xl font-extrabold text-gray-900">
+              {totalCorrect}
+            </p>
+          </div>
 
-            {/* Preferences Tab */}
-            {activeTab === "preferences" && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                    Notification & App Preferences
-                  </h3>
-
-                  <div className="space-y-4">
-                    {[
-                      {
-                        key: "notifications",
-                        label: "General Notifications",
-                        description:
-                          "Receive general app notifications and updates",
-                      },
-                      {
-                        key: "newsletter",
-                        label: "Newsletter Subscription",
-                        description:
-                          "Receive weekly newsletter with exam updates and tips",
-                      },
-                      {
-                        key: "examReminders",
-                        label: "Exam Reminders",
-                        description:
-                          "Get notified about upcoming live exams and deadlines",
-                      },
-                      {
-                        key: "darkMode",
-                        label: "Dark Mode",
-                        description:
-                          "Use dark theme for better viewing experience",
-                      },
-                    ].map((pref) => (
-                      <div
-                        key={pref.key}
-                        className="flex items-center justify-between p-6 bg-gray-50 rounded-lg border border-gray-100"
-                      >
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            {pref.label}
-                          </h4>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {pref.description}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            isEditing && handlePreferenceChange(pref.key)
-                          }
-                          disabled={!isEditing}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            (
-                              isEditing
-                                ? editForm.preferences?.[pref.key]
-                                : user.preferences?.[pref.key]
-                            )
-                              ? "bg-indigo-600"
-                              : "bg-gray-300"
-                          } ${
-                            isEditing
-                              ? "cursor-pointer"
-                              : "cursor-not-allowed opacity-60"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              (
-                                isEditing
-                                  ? editForm.preferences?.[pref.key]
-                                  : user.preferences?.[pref.key]
-                              )
-                                ? "translate-x-6"
-                                : "translate-x-1"
-                            }`}
-                          />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-6">
-                    App Settings
-                  </h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Preferred Language
-                    </label>
-                    {isEditing ? (
-                      <select
-                        value={editForm.preferences?.language || "English"}
-                        onChange={(e) =>
-                          handleNestedInputChange(
-                            "preferences",
-                            "language",
-                            e.target.value
-                          )
-                        }
-                        className="w-full max-w-xs px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      >
-                        <option value="English">English</option>
-                        <option value="Bangla">বাংলা</option>
-                      </select>
-                    ) : (
-                      <p className="text-gray-900 py-3 px-4 bg-gray-50 rounded-lg max-w-xs">
-                        {user.preferences?.language || "English"}
-                      </p>
-                    )}
-                  </div>
-                </div>
+          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-red-600">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-4 bg-red-100 rounded-2xl">
+                <FiXCircle size={28} className="text-red-600" />
               </div>
-            )}
-
-            {/* Account Security Tab */}
-            {activeTab === "account" && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                    Account Security
-                  </h3>
-
-                  {/* Account Status */}
-                  <div className="bg-gray-50 rounded-lg border border-gray-100 p-6 mb-8">
-                    <h4 className="text-lg font-medium text-gray-900 mb-6">
-                      Account Status
-                    </h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Email Verification
-                        </span>
-                        <span className="flex items-center text-sm text-emerald-600">
-                          <svg
-                            className="w-4 h-4 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          {user.isVerified ? "Verified" : "Not Verified"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Account Status
-                        </span>
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            user.status === "active"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-gray-50 text-gray-700 border border-gray-200"
-                          }`}
-                        >
-                          {user.status === "active" ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Member Since
-                        </span>
-                        <span className="text-sm text-gray-900">
-                          {formatDate(user.joinDate)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Last Login
-                        </span>
-                        <span className="text-sm text-gray-900">
-                          {formatDateTime(user.lastLogin)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Security Actions */}
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900 mb-6">
-                      Security Actions
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <button className="flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center mr-4">
-                            <svg
-                              className="w-6 h-6 text-indigo-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v-2H7v-2H5v-2l3.257-3.257A6 6 0 0115 7z"
-                              />
-                            </svg>
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-gray-900">
-                              Change Password
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Update your account password
-                            </p>
-                          </div>
-                        </div>
-                        <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-
-                      <button className="flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center mr-4">
-                            <svg
-                              className="w-6 h-6 text-amber-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                              />
-                            </svg>
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-gray-900">
-                              Two-Factor Authentication
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Enable 2FA for enhanced security
-                            </p>
-                          </div>
-                        </div>
-                        <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-
-                      <button className="flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center mr-4">
-                            <svg
-                              className="w-6 h-6 text-emerald-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-gray-900">
-                              Login History
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              View recent account activity
-                            </p>
-                          </div>
-                        </div>
-                        <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-
-                      <button className="flex items-center justify-between p-6 border border-gray-300 rounded-lg hover:bg-orange-50 transition-colors">
-                        <div className="flex items-center">
-                          <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mr-4">
-                            <svg
-                              className="w-6 h-6 text-orange-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-orange-900">
-                              Delete Account
-                            </p>
-                            <p className="text-sm text-orange-700">
-                              Permanently delete your account
-                            </p>
-                          </div>
-                        </div>
-                        <svg
-                          className="w-5 h-5 text-orange-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
+            <p className="text-gray-600 text-sm font-bold mb-2">
+              Wrong Answers
+            </p>
+            <p className="text-4xl font-extrabold text-gray-900">
+              {totalWrong}
+            </p>
           </div>
         </div>
+
+        {/* Exam Sections */}
+        <div className="space-y-12">
+          <ExamSection
+            title="Live Exams"
+            exams={liveExams}
+            page={livePage}
+            setPage={setLivePage}
+            type="live"
+            icon={<FiBarChart2 size={32} className="text-white" />}
+            gradientFrom="from-purple-500"
+            gradientTo="to-pink-600"
+          />
+
+          <ExamSection
+            title="BCS Exams"
+            exams={bcsExams}
+            page={bcsPage}
+            setPage={setBcsPage}
+            type="bcs"
+            icon={<FiAward size={32} className="text-white" />}
+            gradientFrom="from-blue-500"
+            gradientTo="to-cyan-600"
+          />
+
+          <ExamSection
+            title="HSC Exams"
+            exams={hscExams}
+            page={hscPage}
+            setPage={setHscPage}
+            type="hsc"
+            icon={<FiUser size={32} className="text-white" />}
+            gradientFrom="from-green-500"
+            gradientTo="to-emerald-600"
+          />
+
+          <ExamSection
+            title="Bank Exams"
+            exams={bankExams}
+            page={bankPage}
+            setPage={setBankPage}
+            type="bank"
+            icon={<FiAward size={32} className="text-white" />}
+            gradientFrom="from-amber-500"
+            gradientTo="to-orange-600"
+          />
+        </div>
+
+        {/* Empty State */}
+        {totalExams === 0 && (
+          <div className="bg-white rounded-3xl shadow-2xl p-20 text-center border-2 border-dashed border-gray-300">
+            <div className="w-40 h-40 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-10">
+              <FiAward size={80} className="text-indigo-600" />
+            </div>
+            <h3 className="text-4xl font-extrabold text-gray-900 mb-4">
+              No Exams Yet
+            </h3>
+            <p className="text-gray-600 text-xl mb-10 max-w-lg mx-auto">
+              Start your learning journey by taking exams and track your
+              progress!
+            </p>
+            <button
+              onClick={() => navigate("/exams")}
+              className="px-10 py-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl font-extrabold hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all shadow-2xl hover:shadow-3xl text-xl"
+            >
+              Browse Available Exams
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default ProfilePage;
+export default Profile;

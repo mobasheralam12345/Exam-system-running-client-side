@@ -25,36 +25,63 @@ const OthersExamRoom = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // State for exam metadata
+  const [examType, setExamType] = useState("Other");
+  const [examCategory, setExamCategory] = useState("full");
+  const [examTitle, setExamTitle] = useState("Practice Exam");
+
   const getStorageKey = (key) => {
     return examData ? `practice_exam_${examData._id}_${key}` : null;
   };
 
   useEffect(() => {
     const passedExamData = location.state?.examData;
+    const passedExamType = location.state?.examType;
+    const passedCategory = location.state?.category;
+    const passedTitle = location.state?.title;
+    const passedYear = location.state?.year;
+
     if (!passedExamData) {
       navigate("/exams");
       return;
     }
 
-    setExamData(passedExamData);
+    // Set examType, category, and title from navigation state
+    setExamType(passedExamType || "Other");
+    setExamCategory(passedCategory || "full");
+    setExamTitle(
+      passedTitle || `${passedExamData.subjects[0]?.name || "Practice"} Exam`
+    );
 
-    const subjects = Array.isArray(passedExamData.subjects)
-      ? passedExamData.subjects
+    // Enrich exam data with year if passed
+    const enrichedExamData = {
+      ...passedExamData,
+      examYear: passedYear || passedExamData.examYear,
+    };
+
+    setExamData(enrichedExamData);
+
+    const subjects = Array.isArray(enrichedExamData.subjects)
+      ? enrichedExamData.subjects
       : [];
 
-    const savedStartTime = localStorage.getItem(getStorageKey("startTime"));
-    const savedAnswers = localStorage.getItem(getStorageKey("answers"));
+    const savedStartTime = localStorage.getItem(
+      `practice_exam_${passedExamData._id}_startTime`
+    );
+    const savedAnswers = localStorage.getItem(
+      `practice_exam_${passedExamData._id}_answers`
+    );
     const savedReviewMarked = localStorage.getItem(
-      getStorageKey("reviewMarked")
+      `practice_exam_${passedExamData._id}_reviewMarked`
     );
     const savedVisitedQuestions = localStorage.getItem(
-      getStorageKey("visitedQuestions")
+      `practice_exam_${passedExamData._id}_visitedQuestions`
     );
     const savedCurrentSubject = localStorage.getItem(
-      getStorageKey("currentSubject")
+      `practice_exam_${passedExamData._id}_currentSubject`
     );
     const savedCurrentQuestion = localStorage.getItem(
-      getStorageKey("currentQuestion")
+      `practice_exam_${passedExamData._id}_currentQuestion`
     );
 
     if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
@@ -76,9 +103,15 @@ const OthersExamRoom = () => {
       : 0;
     setCurrentQuestionIndex(initQuestionIndex);
 
-    const totalDuration = passedExamData.duration
-      ? passedExamData.duration * 60
-      : (passedExamData.totalQuestions || 0) * 60;
+    // Calculate duration: 1 question = 1 minute
+    const totalQuestions = subjects.reduce(
+      (total, subject) => total + (subject.questions?.length || 0),
+      0
+    );
+
+    const totalDuration = enrichedExamData.duration
+      ? enrichedExamData.duration * 60
+      : totalQuestions * 60;
 
     if (savedStartTime) {
       const elapsed = Math.floor(
@@ -201,6 +234,95 @@ const OthersExamRoom = () => {
     localStorage.removeItem(getStorageKey("startTime"));
   };
 
+  // Calculate exam results
+  const calculateExamResults = (examData, answers) => {
+    let correctCount = 0;
+    let wrongCount = 0;
+    let totalMarks = 0;
+    let negativeMarksDeducted = 0;
+
+    const difficultyStats = {
+      easy: { correct: 0, wrong: 0, skipped: 0 },
+      medium: { correct: 0, wrong: 0, skipped: 0 },
+      hard: { correct: 0, wrong: 0, skipped: 0 },
+    };
+
+    const subjectPerformance = [];
+    let totalPossibleMarks = 0;
+
+    examData.subjects.forEach((subject, subjectIndex) => {
+      let subjectCorrect = 0;
+      let subjectWrong = 0;
+      let subjectSkipped = 0;
+      let subjectAttempted = 0;
+      let subjectMarks = 0;
+      let subjectMaxMarks = 0;
+
+      subject.questions.forEach((question, questionIndex) => {
+        const questionKey = `${subjectIndex}-${questionIndex}`;
+        const userAnswer = answers[questionKey];
+        const difficulty = question.difficulty || "medium";
+        const marks = question.marks || 1;
+
+        subjectMaxMarks += marks;
+        totalPossibleMarks += marks;
+
+        if (userAnswer !== undefined) {
+          subjectAttempted++;
+
+          if (userAnswer === question.correctAnswer) {
+            correctCount++;
+            subjectCorrect++;
+            totalMarks += marks;
+            subjectMarks += marks;
+            difficultyStats[difficulty].correct++;
+          } else {
+            wrongCount++;
+            subjectWrong++;
+            difficultyStats[difficulty].wrong++;
+
+            if (question.negativeMarks) {
+              totalMarks -= question.negativeMarks;
+              subjectMarks -= question.negativeMarks;
+              negativeMarksDeducted += question.negativeMarks;
+            }
+          }
+        } else {
+          subjectSkipped++;
+          difficultyStats[difficulty].skipped++;
+        }
+      });
+
+      subjectPerformance.push({
+        subjectName: subject.name,
+        totalQuestions: subject.questions.length,
+        attempted: subjectAttempted,
+        correct: subjectCorrect,
+        wrong: subjectWrong,
+        skipped: subjectSkipped,
+        marksObtained: Math.max(0, subjectMarks),
+        maxMarks: subjectMaxMarks,
+      });
+    });
+
+    totalMarks = Math.max(0, totalMarks);
+    const percentage =
+      totalPossibleMarks > 0
+        ? parseFloat(((totalMarks / totalPossibleMarks) * 100).toFixed(2))
+        : 0;
+
+    return {
+      correctAnswers: correctCount,
+      wrongAnswers: wrongCount,
+      totalMarksObtained: totalMarks,
+      totalPossibleMarks: totalPossibleMarks,
+      percentage: percentage,
+      negativeMarksDeducted: negativeMarksDeducted,
+      difficultyStats,
+      subjectPerformance,
+    };
+  };
+
   const handleStartExam = () => {
     setShowStartConfirm(false);
     setExamStarted(true);
@@ -209,11 +331,147 @@ const OthersExamRoom = () => {
   };
 
   const handleSubmitClick = () => setShowSubmitConfirm(true);
-  const handleSubmitConfirm = () => {
+
+  const handleSubmitConfirm = async () => {
+    console.log("exam data: ", examData);
     setShowSubmitConfirm(false);
     setExamCompleted(true);
-    clearExamStorage();
+
+    // Get user data from localStorage
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    const userId = userInfo?._id || userInfo?.id;
+    const username = userInfo?.username;
+    const email = userInfo?.email;
+
+    if (!userId || !username || !email) {
+      console.error("User data not found in localStorage");
+      clearExamStorage();
+      return;
+    }
+
+    // Calculate statistics
+    const totalQuestions = examData.subjects.reduce(
+      (total, subject) => total + subject.questions.length,
+      0
+    );
+    const attemptedCount = Object.keys(answers).length;
+    const skippedCount = totalQuestions - attemptedCount;
+    const markedForReviewCount = reviewMarked.size;
+
+    const durationInMinutes = examData.duration || totalQuestions;
+    const timeConsumed = durationInMinutes * 60 - timeLeft;
+    const startTime = new Date(Date.now() - timeConsumed * 1000);
+
+    const results = calculateExamResults(examData, answers);
+
+    // Build examSnapshot using state variables
+    const examSnapshot = {
+      title: examTitle,
+      examType: examType,
+      duration: durationInMinutes,
+      tags: examData.tags || [],
+      category: examCategory,
+    };
+
+    // ✅ Add conditional fields based on examType AND category
+    if (examCategory === "full") {
+      if (examType === "HSC") {
+        // ✅ For full HSC exams, add all required fields
+        examSnapshot.examYear = examData.examYear;
+        examSnapshot.hscGroup = examData.group;
+        examSnapshot.hscBoard = examData.board;
+
+        // Validate before sending
+      } else if (examType === "BCS") {
+        // ✅ For full BCS exams
+        examSnapshot.examYear = examData.examYear;
+        examSnapshot.batch = examData.batch;
+
+        // Validate before sending
+        if (!examSnapshot.examYear || !examSnapshot.batch) {
+          console.error("❌ Missing BCS fields:", {
+            examYear: examSnapshot.examYear,
+            batch: examSnapshot.batch,
+          });
+          alert("Missing BCS exam information. Please check exam data.");
+          return;
+        }
+      } else if (examType === "Bank") {
+        // ✅ For full Bank exams
+        examSnapshot.examYear = examData.examYear;
+
+        // Validate before sending
+        if (!examSnapshot.examYear) {
+          console.error("❌ Missing Bank examYear:", examSnapshot.examYear);
+          alert("Missing Bank exam year. Please check exam data.");
+          return;
+        }
+      }
+    }
+    // For subject-wise exams, no year/batch/group needed
+
+    const submissionData = {
+      examId: examData._id,
+      userId: userId,
+      username: username,
+      email: email,
+      examSnapshot: examSnapshot,
+      answers: answers,
+      questionStats: {
+        totalQuestions: totalQuestions,
+        attempted: attemptedCount,
+        skipped: skippedCount,
+        markedForReview: markedForReviewCount,
+      },
+      resultMetrics: {
+        correctAnswers: results.correctAnswers,
+        wrongAnswers: results.wrongAnswers,
+        totalMarksObtained: results.totalMarksObtained,
+        totalPossibleMarks: results.totalPossibleMarks,
+        percentage: results.percentage,
+        negativeMarksDeducted: results.negativeMarksDeducted,
+      },
+      difficultyStats: results.difficultyStats,
+      subjectWisePerformance: results.subjectPerformance,
+      timeTracking: {
+        timeAllocated: durationInMinutes * 60,
+        timeConsumed: timeConsumed,
+        timeRemaining: timeLeft,
+        startedAt: startTime,
+        submittedAt: new Date(),
+      },
+    };
+
+    console.log("📤 Practice submission:", submissionData);
+    console.log("📋 examSnapshot details:", examSnapshot);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/practice-exam/submit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(submissionData),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("✅ Practice exam submitted:", result);
+        clearExamStorage();
+      } else {
+        const error = await response.json();
+        console.error("❌ Submission failed:", error);
+        alert(`Submission failed: ${error.message}`);
+        clearExamStorage();
+      }
+    } catch (error) {
+      console.error("❌ Submission error:", error);
+      alert("Network error. Please try again.");
+      clearExamStorage();
+    }
   };
+
   const handleSubmitCancel = () => setShowSubmitConfirm(false);
 
   const handleAnswerSelect = (optionIndex) => {

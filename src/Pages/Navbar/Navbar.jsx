@@ -192,7 +192,7 @@ const Navbar = () => {
                   onMouseLeave={() => handleDropdownLeave("bcs")}
                 >
                   <NavLink
-                    to="/exam"
+                    to="/bcs/all-questions"
                     className={({ isActive }) =>
                       `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
                         isActive

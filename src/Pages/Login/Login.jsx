@@ -54,11 +54,8 @@ const Login = () => {
 
       // Save token and user info in localStorage
       localStorage.setItem("userToken", data.token);
-      const { _id, email, username } = data.user;
-      localStorage.setItem(
-        "userInfo",
-        JSON.stringify({ _id, email, username })
-      );
+      const { id, email, username } = data.user;
+      localStorage.setItem("userInfo", JSON.stringify({ id, email, username }));
 
       // Dispatch custom event to notify Navbar and other components
       window.dispatchEvent(new Event("storage"));

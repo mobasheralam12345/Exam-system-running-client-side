@@ -63,7 +63,14 @@ const QuestionSelector = () => {
       setIsLoading(false);
 
       // Navigate with examData in location state
-      navigate("/exam/practice", { state: { examData } });
+      navigate("/exam/practice", {
+        state: {
+          examData: examData,
+          examType: "BCS",
+          category: "subject-wise",
+          title: `BCS ${selectedSubject} Exam`,
+        },
+      });
 
       // Reset all states immediately (already done) and handle automatic homepage navigation from useEffect
     } catch (err) {

@@ -51,9 +51,12 @@ const HscExamSelector = () => {
           navigate("/exam/practice", {
             state: {
               examData: data.data,
-              year: examYear,
-              group: selectedGroup,
-              board: selectedBoard,
+              examType: "HSC",
+              category: "full",
+              title: `HSC ${selectedGroup} ${data.data.examYear} ${selectedBoard} Exam`,
+              year: data.data.examYear,
+              hscGroup: selectedGroup,
+              hscBoard: selectedBoard,
             },
           });
           setSelectedGroup("");

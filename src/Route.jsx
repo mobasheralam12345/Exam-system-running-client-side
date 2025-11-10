@@ -16,7 +16,6 @@ import BankExam from "./Pages/BankExam/BankExam";
 import BankSubjectWise from "./Pages/BankExam/subjectwiseBank";
 import LiveExamsPage from "./Pages/LiveExam/liveExams";
 import AdminExamCreator from "./Pages/Admin/Exam-Creation/AdminExamCreator";
-import LiveExamInterface from "./Pages/LiveExamRoom";
 import LiveExamRoom from "./Pages/ExamRoom/LiveExamRoom";
 import OthersExamRoom from "./Pages/ExamRoom/OthersExamRoom";
 import ExamReview from "./Pages/ExamReview";
@@ -88,14 +87,6 @@ const router = createBrowserRouter([
       {
         path: "/LiveExams",
         element: <LiveExamsPage></LiveExamsPage>,
-      },
-      {
-        path: "/Exam/Room/Live",
-        element: (
-          <PrivateRoute>
-            <LiveExamInterface />
-          </PrivateRoute>
-        ),
       },
       {
         path: "/exam/live",

@@ -61,7 +61,14 @@ const BankQuestionSelector = () => {
       setTotalQuestions("");
       setIsLoading(false);
 
-      navigate("/exam/practice", { state: { examData } });
+      navigate("/exam/practice", {
+        state: {
+          examData,
+          examType: "Bank",
+          category: "subject-wise",
+          title: `BCS ${selectedSubject} Exam`,
+        },
+      });
     } catch (err) {
       setIsLoading(false);
       Swal.fire("Error", err.message, "error");
