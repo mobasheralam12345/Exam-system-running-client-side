@@ -1,94 +1,170 @@
-import { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import './Login.css';
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import Swal from "sweetalert2";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const Login = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');  // Error message state
-    const [successMessage, setSuccessMessage] = useState('');  // Success message state
-    const navigate = useNavigate();
-    
-    // Check if the user is authenticated by checking localStorage
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  
-    // Handle form submission (login)
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [formData, setFormData] = useState({
+    emailOrUsername: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
 
-        try {
-            const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+  // Get redirect path from location state or fallback to "/"
+  const redirectPath = location.state?.from?.pathname || "/";
 
-            // Set success message
-            setSuccessMessage('Login successful! Redirecting to dashboard...');
-            setErrorMessage(''); // Clear any previous error message
-            
-            // Set user as logged in
-            localStorage.setItem('isAuthenticated', 'true');
-            localStorage.setItem('userEmail', email);
-            navigate('/'); // Navigate to home page after successful login
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Invalid email or password';
-            setErrorMessage(errorMessage); // Set error message
-            setSuccessMessage(''); // Clear any previous success message
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.emailOrUsername || !formData.password) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Information",
+        text: "Please fill in both fields.",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/user/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const contentType = res.headers.get("content-type");
+      if (!res.ok) {
+        let errorMessage = "Login failed";
+        if (contentType && contentType.includes("application/json")) {
+          const errData = await res.json();
+          errorMessage = errData.message || errorMessage;
+        } else {
+          errorMessage = await res.text();
         }
-    };
+        throw new Error(errorMessage);
+      }
 
-    // Handle logout
-    const handleLogout = () => {
-        localStorage.removeItem('isAuthenticated'); // Remove login status
-        localStorage.removeItem('token'); // Optionally remove token
-        setSuccessMessage('Logout successful! Redirecting to login page...');
-        setErrorMessage(''); // Clear any previous error message
-        setTimeout(() => {
-            navigate('/login'); // Navigate to login page after logout
-        }, 2000); // Adding delay to let the user see the success message
-    };
+      const data = await res.json();
 
-    return (
-        <div className="login-container">
-            <h2>{isAuthenticated ? "Welcome Back!" : "Login"}</h2>
+      // Save token and user info in localStorage
+      localStorage.setItem("userToken", data.token);
+      const { _id, email, username } = data.user;
+      localStorage.setItem(
+        "userInfo",
+        JSON.stringify({ _id, email, username })
+      );
 
-            {/* Display Success or Error messages */}
-            {successMessage && <div className="alert alert-success">{successMessage}</div>}
-            {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
+      // Dispatch custom event to notify Navbar and other components
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new Event("authChange"));
 
-            {!isAuthenticated ? (
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="email">Email</label>
-                        <input
-                            type="email"
-                            id="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
+      Swal.fire({
+        icon: "success",
+        title: "Welcome Back!",
+        text: `Hello, ${username}`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
 
-                    <div className="form-group">
-                        <label htmlFor="password">Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
+      // Redirect user to the page they came from or homepage
+      setTimeout(() => {
+        navigate(redirectPath, { replace: true });
+      }, 2000);
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Login Failed",
+        text: err.message || "Server error, please try again later.",
+      });
+    }
+    setLoading(false);
+  };
 
-                    <button type="submit" className="btn text-xl btn-primary">Login</button>
-                </form>
-            ) : (
-                <div>
-                    <h3>Welcome Back!</h3>
-                    <button type='submit' onClick={handleLogout} className="btn text-xl btn-primary">Logout</button>
-                </div>
-            )}
-            <p className='text-xl'>Don't have an account? <a className='text-xl font-bold' href="/register">Register</a></p>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-16">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-12 font-sans">
+        <h1 className="text-4xl font-extrabold mb-8 text-indigo-700 drop-shadow-lg select-none text-center">
+          Login
+        </h1>
+        <form onSubmit={handleSubmit} className="space-y-7">
+          <div>
+            <label
+              htmlFor="emailOrUsername"
+              className="block mb-2 text-lg font-semibold text-gray-700 cursor-pointer"
+            >
+              Email or Username
+            </label>
+            <input
+              id="emailOrUsername"
+              name="emailOrUsername"
+              type="text"
+              value={formData.emailOrUsername}
+              onChange={handleChange}
+              placeholder="Enter your email or username"
+              className="w-full px-5 py-3 border rounded-xl text-lg border-gray-300 shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-400 transition hover:shadow-lg"
+              disabled={loading}
+              autoComplete="username"
+              required
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="password"
+              className="block mb-2 text-lg font-semibold text-gray-700 cursor-pointer"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              className="w-full px-5 py-3 border rounded-xl text-lg border-gray-300 shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-400 transition hover:shadow-lg"
+              disabled={loading}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 bg-indigo-700 text-white font-extrabold rounded-xl shadow-lg hover:bg-indigo-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+
+        <div className="mt-8 flex justify-between text-indigo-700 font-semibold text-sm select-none">
+          <button
+            type="button"
+            onClick={() => navigate("/forgot-password")}
+            className="underline hover:text-indigo-900"
+          >
+            Forgot Password?
+          </button>
+          <div>
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="underline hover:text-indigo-900"
+            >
+              Register
+            </button>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default Login;

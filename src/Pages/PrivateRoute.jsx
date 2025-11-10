@@ -1,26 +1,27 @@
 import { Navigate } from "react-router-dom";
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 
-const PrivateRoute = ({ children }) => {
-    // Check if the user is authenticated by checking localStorage
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    const loading = false; // Simulate loading state if necessary
+const PrivateRoute = ({ children, loading = false }) => {
+  // Check if JWT token exists in localStorage to determine auth state
+  const token = localStorage.getItem("userToken");
 
-    if (loading) {
-        return <span className="loading loading-spinner loading-md"></span>;
-    }
+  if (loading) {
+    // You can replace with any custom loading spinner or component
+    return <span className="loading loading-spinner loading-md"></span>;
+  }
 
-    // If the user is authenticated, render the children (protected component)
-    if (isAuthenticated) {
-        return children;
-    }
+  if (token) {
+    // Authenticated, render protected children
+    return children;
+  }
 
-    // Otherwise, redirect to the login page
-    return <Navigate to="/login" replace />;
+  // Not authenticated, redirect to login
+  return <Navigate to="/login" replace />;
 };
 
 PrivateRoute.propTypes = {
-    children: PropTypes.node.isRequired
+  children: PropTypes.node.isRequired,
+  loading: PropTypes.bool,
 };
 
 export default PrivateRoute;

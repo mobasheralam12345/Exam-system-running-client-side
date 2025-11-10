@@ -1,32 +1,57 @@
-import { Link, NavLink } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useState, useEffect, useRef } from "react";
 
 const Navbar = () => {
   const navigate = useNavigate();
+
+  // Authentication state based on presence of userToken
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("userToken")
+  );
+
   const [showExamMenu, setShowExamMenu] = useState(false);
   const [showHscMenu, setShowHscMenu] = useState(false);
   const [showBankMenu, setShowBankMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const dropdownRef = useRef(null);
   const examTimeoutRef = useRef(null);
   const hscTimeoutRef = useRef(null);
   const bankTimeoutRef = useRef(null);
 
-  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  // Listen for authentication changes
+  useEffect(() => {
+    const syncAuth = () => {
+      const hasToken = !!localStorage.getItem("userToken");
+      console.log("Auth sync triggered, token exists:", hasToken);
+      setIsAuthenticated(hasToken);
+    };
+
+    // Listen to storage events
+    window.addEventListener("storage", syncAuth);
+    window.addEventListener("authChange", syncAuth);
+
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("authChange", syncAuth);
+    };
+  }, []);
 
   const handleLogOut = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("token");
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("userInfo");
+    setIsAuthenticated(false);
     setIsMobileMenuOpen(false);
+
+    // Dispatch event to notify other components
+    window.dispatchEvent(new Event("authChange"));
+
     Swal.fire({
-      title: "Logout Successfully",
+      title: "Logout Successful",
       icon: "success",
       confirmButtonText: "OK",
-      customClass: {
-        confirmButton: "swal-button",
-      },
+      customClass: { confirmButton: "swal-button" },
     }).then(() => {
       navigate("/login");
     });
@@ -53,17 +78,11 @@ const Navbar = () => {
 
   const handleDropdownLeave = (menu) => {
     if (menu === "bcs") {
-      examTimeoutRef.current = setTimeout(() => {
-        setShowExamMenu(false);
-      }, 200);
+      examTimeoutRef.current = setTimeout(() => setShowExamMenu(false), 200);
     } else if (menu === "hsc") {
-      hscTimeoutRef.current = setTimeout(() => {
-        setShowHscMenu(false);
-      }, 200);
+      hscTimeoutRef.current = setTimeout(() => setShowHscMenu(false), 200);
     } else if (menu === "bank") {
-      bankTimeoutRef.current = setTimeout(() => {
-        setShowBankMenu(false);
-      }, 200);
+      bankTimeoutRef.current = setTimeout(() => setShowBankMenu(false), 200);
     }
   };
 
@@ -75,8 +94,8 @@ const Navbar = () => {
     };
   }, []);
 
-  const handleClickOutside = (event) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+  const handleClickOutside = (e) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
       setShowExamMenu(false);
       setShowHscMenu(false);
       setShowBankMenu(false);
@@ -85,15 +104,19 @@ const Navbar = () => {
 
   useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const DropdownItem = ({ to, onClick, children }) => (
     <Link
       to={to}
-      onClick={onClick}
+      onClick={() => {
+        onClick?.();
+        setShowExamMenu(false);
+        setShowHscMenu(false);
+        setShowBankMenu(false);
+        setIsMobileMenuOpen(false);
+      }}
       className="block px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 transform hover:translate-x-2"
     >
       {children}
@@ -121,13 +144,11 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="h-20">
-        {/* This empty div creates space for the fixed navbar */}
-      </div>
+      <div className="h-20" />
       <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
         <div className="max-w-8xl mx-auto px-4">
           <div className="flex items-center justify-between h-24">
-            {/* Logo - Always on the left */}
+            {/* Logo */}
             <div className="flex-shrink-0 w-1/4">
               <Link
                 to="/"
@@ -142,33 +163,38 @@ const Navbar = () => {
 
             {/* Desktop Navigation - Center */}
             <div className="hidden lg:flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
-              <div className="flex items-center space-x-1 lg:space-x-2 xl:space-x-3">
+              <div className="flex items-center space-x-3">
                 {/* Live Exams */}
                 <NavLink
                   to="/LiveExams"
                   className={({ isActive }) =>
-                    `rounded-lg text-xs lg:text-sm xl:text-base font-bold transition-all duration-300 px-2 lg:px-3 xl:px-4 py-1.5 lg:py-2 xl:py-2.5 border-2 hover:scale-105 whitespace-nowrap ${
+                    `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap ${
                       isActive
                         ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
                         : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
                     }`
                   }
                 >
-                  <div className="flex items-center gap-1 lg:gap-1.5">
-                    <span className="flex h-1.5 w-1.5 lg:h-2 lg:w-2">
-                      <span className="animate-ping absolute inline-flex h-1.5 w-1.5 lg:h-2 lg:w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 lg:h-2 lg:w-2 bg-emerald-500"></span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                     Live Exams
                   </div>
                 </NavLink>
 
                 {/* BCS Exam Dropdown */}
-                <div className="relative group">
+                <div
+                  className="relative group"
+                  ref={dropdownRef}
+                  onMouseEnter={() => handleDropdownEnter("bcs")}
+                  onMouseLeave={() => handleDropdownLeave("bcs")}
+                >
                   <NavLink
                     to="/exam"
                     className={({ isActive }) =>
-                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold transition-all duration-300 px-2 lg:px-3 xl:px-4 py-1.5 lg:py-2 xl:py-2.5 border-2 hover:scale-105 whitespace-nowrap flex items-center gap-1 ${
+                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
                         isActive
                           ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
                           : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
@@ -177,7 +203,7 @@ const Navbar = () => {
                   >
                     BCS Exam
                     <svg
-                      className="w-3 h-3 lg:w-4 lg:h-4 transition-transform duration-200 group-hover:rotate-180"
+                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -190,8 +216,14 @@ const Navbar = () => {
                       />
                     </svg>
                   </NavLink>
-                  <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
-                  <div className="absolute right-0 mt-2 w-48 lg:w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
+
+                  <div
+                    className={`absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top ${
+                      showExamMenu
+                        ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+                        : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+                    }`}
+                  >
                     <div className="py-2">
                       <DropdownItem to="bcs/all-questions">
                         All Questions Exam
@@ -204,11 +236,15 @@ const Navbar = () => {
                 </div>
 
                 {/* HSC Exam Dropdown */}
-                <div className="relative group">
+                <div
+                  className="relative group"
+                  onMouseEnter={() => handleDropdownEnter("hsc")}
+                  onMouseLeave={() => handleDropdownLeave("hsc")}
+                >
                   <NavLink
                     to="/hsc/all-questions"
                     className={({ isActive }) =>
-                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold transition-all duration-300 px-2 lg:px-3 xl:px-4 py-1.5 lg:py-2 xl:py-2.5 border-2 hover:scale-105 whitespace-nowrap flex items-center gap-1 ${
+                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
                         isActive
                           ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
                           : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
@@ -217,7 +253,7 @@ const Navbar = () => {
                   >
                     HSC Exam
                     <svg
-                      className="w-3 h-3 lg:w-4 lg:h-4 transition-transform duration-200 group-hover:rotate-180"
+                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -230,8 +266,14 @@ const Navbar = () => {
                       />
                     </svg>
                   </NavLink>
-                  <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
-                  <div className="absolute right-0 mt-2 w-48 lg:w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
+
+                  <div
+                    className={`absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top ${
+                      showHscMenu
+                        ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+                        : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+                    }`}
+                  >
                     <div className="py-2">
                       <DropdownItem to="/hsc/all-questions">
                         All Questions Exam
@@ -244,11 +286,15 @@ const Navbar = () => {
                 </div>
 
                 {/* Bank Exam Dropdown */}
-                <div className="relative group">
+                <div
+                  className="relative group"
+                  onMouseEnter={() => handleDropdownEnter("bank")}
+                  onMouseLeave={() => handleDropdownLeave("bank")}
+                >
                   <NavLink
                     to="/bank/all-questions"
                     className={({ isActive }) =>
-                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold transition-all duration-300 px-2 lg:px-3 xl:px-4 py-1.5 lg:py-2 xl:py-2.5 border-2 hover:scale-105 whitespace-nowrap flex items-center gap-1 ${
+                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
                         isActive
                           ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
                           : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
@@ -257,7 +303,7 @@ const Navbar = () => {
                   >
                     Bank Exam
                     <svg
-                      className="w-3 h-3 lg:w-4 lg:h-4 transition-transform duration-200 group-hover:rotate-180"
+                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -270,8 +316,14 @@ const Navbar = () => {
                       />
                     </svg>
                   </NavLink>
-                  <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
-                  <div className="absolute right-0 mt-2 w-48 lg:w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
+
+                  <div
+                    className={`absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top ${
+                      showBankMenu
+                        ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+                        : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+                    }`}
+                  >
                     <div className="py-2">
                       <DropdownItem to="/bank/all-questions">
                         All Questions Exam
@@ -312,17 +364,18 @@ const Navbar = () => {
               </button>
             </div>
 
-            {/* Auth Button - Always on the right */}
+            {/* Auth Action Button - Desktop */}
             <div className="hidden lg:flex items-center justify-end w-1/4 gap-4">
               {isAuthenticated ? (
                 <>
+                  {/* User Icon Dropdown */}
                   <div className="relative group">
                     <button className="flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-50 p-2 text-gray-600 hover:text-blue-600 transition-all duration-300 hover:scale-105 hover:shadow-md">
                       <svg
-                        className="w-7 h-7 lg:w-8 lg:h-8"
+                        className="w-8 h-8"
                         fill="none"
-                        stroke="currentColor"
                         viewBox="0 0 24 24"
+                        stroke="currentColor"
                       >
                         <path
                           strokeLinecap="round"
@@ -332,12 +385,11 @@ const Navbar = () => {
                         />
                       </svg>
                     </button>
-                    <div className="absolute -bottom-2 left-0 right-0 h-2 bg-transparent"></div>
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top opacity-0 scale-95 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto">
+                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-xl opacity-0 scale-95 transform -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto transition-all duration-300 origin-top">
                       <div className="py-2">
                         <Link
                           to="/dashboard"
-                          className="flex items-center gap-2 px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                          className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
                         >
                           <svg
                             className="w-5 h-5"
@@ -356,7 +408,7 @@ const Navbar = () => {
                         </Link>
                         <Link
                           to="/profile"
-                          className="flex items-center gap-2 px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                          className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
                         >
                           <svg
                             className="w-5 h-5"
@@ -378,14 +430,14 @@ const Navbar = () => {
                   </div>
                   <button
                     onClick={handleLogOut}
-                    className="px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 bg-red-600 text-white text-sm lg:text-base xl:text-lg font-bold rounded-lg hover:bg-red-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                    className="px-5 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg hover:shadow-xl hover:scale-105 transition"
                   >
                     Log Out
                   </button>
                 </>
               ) : (
                 <Link to="/login">
-                  <button className="px-4 lg:px-5 xl:px-6 py-2 lg:py-2.5 xl:py-3 bg-blue-600 text-white text-sm lg:text-base xl:text-lg font-bold rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
+                  <button className="px-5 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg hover:shadow-xl hover:scale-105 transition">
                     Login
                   </button>
                 </Link>
@@ -404,11 +456,12 @@ const Navbar = () => {
         }`}
       >
         <div className="px-2 pt-2 pb-3 space-y-1 bg-white shadow-lg">
+          {/* Live Exams */}
           <MobileNavItem to="/LiveExams">
             <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5">
+              <span className="flex h-2.5 w-2.5 relative">
                 <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                <span className="relative rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
               Live Exams
             </div>
@@ -418,7 +471,7 @@ const Navbar = () => {
           <div className="space-y-1">
             <button
               onClick={() => setShowExamMenu(!showExamMenu)}
-              className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
+              className="w-full text-left px-5 py-4 text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
             >
               <span>BCS Exam</span>
               <svg
@@ -457,7 +510,7 @@ const Navbar = () => {
           <div className="space-y-1">
             <button
               onClick={() => setShowHscMenu(!showHscMenu)}
-              className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
+              className="w-full text-left px-5 py-4 text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
             >
               <span>HSC Exam</span>
               <svg
@@ -498,7 +551,7 @@ const Navbar = () => {
           <div className="space-y-1">
             <button
               onClick={() => setShowBankMenu(!showBankMenu)}
-              className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
+              className="w-full text-left px-5 py-4 text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
             >
               <span>Bank Exam</span>
               <svg
@@ -537,42 +590,8 @@ const Navbar = () => {
 
           {isAuthenticated && (
             <>
-              <MobileNavItem to="/dashboard">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                    />
-                  </svg>
-                  Dashboard
-                </div>
-              </MobileNavItem>
-              <MobileNavItem to="/profile">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  Profile
-                </div>
-              </MobileNavItem>
+              <MobileNavItem to="/dashboard">Dashboard</MobileNavItem>
+              <MobileNavItem to="/profile">Profile</MobileNavItem>
             </>
           )}
 
@@ -580,30 +599,13 @@ const Navbar = () => {
           {isAuthenticated ? (
             <button
               onClick={handleLogOut}
-              className="w-full flex items-center gap-2 px-5 py-4 text-base md:text-lg font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors rounded-lg"
+              className="w-full px-5 py-4 text-base font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
               Log Out
             </button>
           ) : (
-            <Link
-              to="/login"
-              className="block"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <button className="w-full text-left px-5 py-4 text-base md:text-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors rounded-lg">
+            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+              <button className="w-full px-5 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                 Login
               </button>
             </Link>
