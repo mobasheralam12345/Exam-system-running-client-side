@@ -21,7 +21,7 @@ const isAuthenticated = () => {
       return false;
     }
 
-    if (decoded.role !== "admin") {
+    if (decoded.role !== "admin" && decoded.role != "editor") {
       console.log("Role is not admin");
       return false;
     }

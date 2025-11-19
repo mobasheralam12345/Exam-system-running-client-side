@@ -34,7 +34,7 @@ const ExamHeader = ({
       {showSubmit && (
         <button
           onClick={onSubmit}
-          className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors"
+          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors"
         >
           Submit Exam
         </button>

@@ -220,11 +220,15 @@ const Profile = () => {
 
           {isLive && (
             <button
-              onClick={() => navigate(`/live-exam/standings/${exam.examId}`)}
-              className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg text-base"
+              onClick={() => {
+                // Add the type parameter
+                const examType = isLive ? "live" : "practice";
+                navigate(`/exam-review/${examType}/${exam._id}`);
+              }}
+              className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
             >
-              <FiBarChart2 size={20} />
-              View Standings
+              <FiEye size={20} />
+              Show Leaderboard
             </button>
           )}
         </div>

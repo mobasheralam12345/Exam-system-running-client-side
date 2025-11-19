@@ -15,7 +15,11 @@ const Navbar = () => {
   const [showBankMenu, setShowBankMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const dropdownRef = useRef(null);
+  // Separate refs for each dropdown
+  const bcsDropdownRef = useRef(null);
+  const hscDropdownRef = useRef(null);
+  const bankDropdownRef = useRef(null);
+
   const examTimeoutRef = useRef(null);
   const hscTimeoutRef = useRef(null);
   const bankTimeoutRef = useRef(null);
@@ -94,8 +98,16 @@ const Navbar = () => {
     };
   }, []);
 
+  // Updated handleClickOutside to check all three dropdown refs
   const handleClickOutside = (e) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+    if (
+      bcsDropdownRef.current &&
+      !bcsDropdownRef.current.contains(e.target) &&
+      hscDropdownRef.current &&
+      !hscDropdownRef.current.contains(e.target) &&
+      bankDropdownRef.current &&
+      !bankDropdownRef.current.contains(e.target)
+    ) {
       setShowExamMenu(false);
       setShowHscMenu(false);
       setShowBankMenu(false);
@@ -187,7 +199,7 @@ const Navbar = () => {
                 {/* BCS Exam Dropdown */}
                 <div
                   className="relative group"
-                  ref={dropdownRef}
+                  ref={bcsDropdownRef}
                   onMouseEnter={() => handleDropdownEnter("bcs")}
                   onMouseLeave={() => handleDropdownLeave("bcs")}
                 >
@@ -238,6 +250,7 @@ const Navbar = () => {
                 {/* HSC Exam Dropdown */}
                 <div
                   className="relative group"
+                  ref={hscDropdownRef}
                   onMouseEnter={() => handleDropdownEnter("hsc")}
                   onMouseLeave={() => handleDropdownLeave("hsc")}
                 >
@@ -275,10 +288,10 @@ const Navbar = () => {
                     }`}
                   >
                     <div className="py-2">
-                      <DropdownItem to="/hsc/all-questions">
+                      <DropdownItem to="hsc/all-questions">
                         All Questions Exam
                       </DropdownItem>
-                      <DropdownItem to="/hsc/subjectwise">
+                      <DropdownItem to="hsc/subjectwise">
                         Subject Wise Exam
                       </DropdownItem>
                     </div>
@@ -288,6 +301,7 @@ const Navbar = () => {
                 {/* Bank Exam Dropdown */}
                 <div
                   className="relative group"
+                  ref={bankDropdownRef}
                   onMouseEnter={() => handleDropdownEnter("bank")}
                   onMouseLeave={() => handleDropdownLeave("bank")}
                 >
@@ -325,10 +339,10 @@ const Navbar = () => {
                     }`}
                   >
                     <div className="py-2">
-                      <DropdownItem to="/bank/all-questions">
+                      <DropdownItem to="bank/all-questions">
                         All Questions Exam
                       </DropdownItem>
-                      <DropdownItem to="/bank/subjectwise">
+                      <DropdownItem to="bank/subjectwise">
                         Subject Wise Exam
                       </DropdownItem>
                     </div>
@@ -493,15 +507,11 @@ const Navbar = () => {
             <div
               className={`pl-4 space-y-1 ${showExamMenu ? "block" : "hidden"}`}
             >
-              <MobileNavItem to="/exam">All Questions Exam</MobileNavItem>
-              <MobileNavItem to="/subjectwise-exam">
-                Subject Wise Exam
+              <MobileNavItem to="/bcs/all-questions">
+                All Questions Exam
               </MobileNavItem>
-              <MobileNavItem
-                to="/BCSOthersExam"
-                onClick={() => localStorage.removeItem("selectedOptions")}
-              >
-                Others
+              <MobileNavItem to="/bcs/subjectwise">
+                Subject Wise Exam
               </MobileNavItem>
             </div>
           </div>
@@ -538,12 +548,6 @@ const Navbar = () => {
               <MobileNavItem to="/hsc/subjectwise">
                 Subject Wise Exam
               </MobileNavItem>
-              <MobileNavItem
-                to="/HSCOthersExam"
-                onClick={() => localStorage.removeItem("selectedOptions")}
-              >
-                Others
-              </MobileNavItem>
             </div>
           </div>
 
@@ -578,12 +582,6 @@ const Navbar = () => {
               </MobileNavItem>
               <MobileNavItem to="/bank/subjectwise">
                 Subject Wise Exam
-              </MobileNavItem>
-              <MobileNavItem
-                to="/BankOthersExam"
-                onClick={() => localStorage.removeItem("selectedOptions")}
-              >
-                Others
               </MobileNavItem>
             </div>
           </div>
