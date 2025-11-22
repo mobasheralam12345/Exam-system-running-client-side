@@ -382,7 +382,7 @@ const LiveExamsPage = () => {
     const fetchLiveExams = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${BACKEND_URL}/liveExam/mock`);
+        const response = await fetch(`${BACKEND_URL}/liveExam/active`);
         if (!response.ok) {
           throw new Error("Failed to fetch live exams");
         }
@@ -516,7 +516,7 @@ const LiveExamsPage = () => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    const isMoreThanOneHour = hours > 1;
+    const isMoreThanOneHour = hours > 3;
 
     return {
       status: "upcoming",
