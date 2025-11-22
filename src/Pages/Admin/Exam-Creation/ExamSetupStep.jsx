@@ -60,15 +60,20 @@ const ExamSetupStep = ({ examData, setExamData }) => {
           type="datetime-local"
           value={examData.startTime || ""}
           onChange={(e) => {
-            const selectedTime = new Date(e.target.value);
+            const selectedTime = e.target.value; // e.g., "2025-11-23T04:45"
+            const selectedDate = new Date(selectedTime);
+
             const now = new Date();
-            if (selectedTime < now) {
+            if (selectedDate < now) {
               alert("Start time cannot be in the past!");
               return;
             }
-            handleChange("SET_START_TIME", e.target.value);
+
+            // Convert selected datetime to UTC before storing
+            const utcString = selectedDate.toISOString(); // e.g., "2025-11-23T04:45:00.000Z"
+            handleChange("SET_START_TIME", utcString);
           }}
-          min={getLocalDateTime()}
+          min={new Date().toISOString().slice(0, 16)} // optional, prevents past selection
           className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
