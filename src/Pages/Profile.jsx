@@ -1,5 +1,3 @@
-// pages/UserDashboard.jsx
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -21,6 +19,8 @@ import {
   FiBook,
 } from "react-icons/fi";
 
+const ITEMS_PER_PAGE = 5;
+
 const Profile = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
@@ -36,8 +36,6 @@ const Profile = () => {
   const [hscPage, setHscPage] = useState(0);
   const [bcsPage, setBcsPage] = useState(0);
   const [bankPage, setBankPage] = useState(0);
-
-  const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -130,7 +128,7 @@ const Profile = () => {
     const metrics = exam.resultMetrics;
 
     return (
-      <div className="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-indigo-300">
+      <div className="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-indigo-300 h-full flex flex-col">
         {/* Card Header */}
         <div
           className={`p-6 ${
@@ -208,8 +206,8 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className={`p-6 bg-white ${isLive ? "space-y-3" : ""}`}>
+        {/* Action Buttons - stick bottom for mobile */}
+        <div className={`p-6 bg-white mt-auto ${isLive ? "space-y-3" : ""}`}>
           <button
             onClick={() => navigate(`/exam-review/${exam._id}`)}
             className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
@@ -221,7 +219,6 @@ const Profile = () => {
           {isLive && (
             <button
               onClick={() => {
-                // Add the type parameter
                 const examType = isLive ? "live" : "practice";
                 navigate(`/exam-review/${examType}/${exam._id}`);
               }}
@@ -254,8 +251,8 @@ const Profile = () => {
     if (exams.length === 0) return null;
 
     return (
-      <div className="mb-12">
-        <div className="flex items-center justify-between mb-6">
+      <div className="mb-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">
             <div
               className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} shadow-lg`}
@@ -263,7 +260,9 @@ const Profile = () => {
               {icon}
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {title}
+              </h2>
               <p className="text-sm text-gray-600 font-semibold mt-1">
                 {exams.length} exams completed
               </p>
@@ -292,7 +291,8 @@ const Profile = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Responsive grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 sm:gap-6">
           {paginatedExams.map((exam) => (
             <ExamCard key={exam._id} exam={exam} type={type} />
           ))}
@@ -321,16 +321,17 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-12">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-md sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <div className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 items-center justify-between py-3 sm:py-0 sm:h-20">
+            <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               My Dashboard
             </div>
 
+            {/* Settings & profile menu */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/settings")}
-                className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all shadow-sm"
               >
                 <FiSettings size={20} />
                 <span className="hidden sm:inline">Settings</span>
@@ -339,7 +340,7 @@ const Profile = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-md"
+                  className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-md"
                 >
                   <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center text-base font-bold">
                     {userInfo?.username?.charAt(0).toUpperCase() || "U"}
@@ -349,6 +350,7 @@ const Profile = () => {
                   </span>
                 </button>
 
+                {/* Profile menu */}
                 {showProfileMenu && (
                   <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50">
                     <button
@@ -387,162 +389,120 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="max-w-[1400px] mx-auto px-2 sm:px-4 md:px-8 pt-6">
         {/* User Profile Card */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-10 border border-gray-200">
-          <div className="flex flex-col lg:flex-row items-center gap-8">
+        <div className="bg-white rounded-3xl shadow-2xl p-4 md:p-6 lg:p-8 mb-8 border border-gray-200">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 md:gap-8">
             {/* Profile Image */}
-            <div className="relative">
+            <div className="relative mb-4 md:mb-0 md:mr-6">
               {userInfo?.profileImage ? (
                 <img
                   src={userInfo.profileImage}
                   alt="Profile"
-                  className="w-32 h-32 rounded-full object-cover border-4 border-indigo-200 shadow-lg"
+                  className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover border-2 md:border-4 border-indigo-200 shadow-lg"
                 />
               ) : (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-5xl font-bold shadow-lg border-4 border-white">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl sm:text-4xl md:text-5xl font-bold shadow-lg border-2 md:border-4 border-white">
                   {userInfo?.username?.charAt(0).toUpperCase() || "U"}
                 </div>
               )}
-              <div className="absolute bottom-0 right-0 w-10 h-10 bg-green-500 rounded-full border-4 border-white shadow-lg"></div>
+              {/* Online indicator */}
+              <div className="absolute bottom-0 right-0 w-4 h-4 md:w-6 md:h-6 bg-green-500 rounded-full border-2 md:border-4 border-white shadow-lg"></div>
             </div>
 
-            {/* User Info Grid */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <FiUser className="text-indigo-600" size={20} />
-                  <span className="text-sm font-semibold text-gray-600">
-                    Username
-                  </span>
+            {/* Responsive Info Grid */}
+            <div className="flex-1 grid grid-cols-1 gap-2 sm:gap-4 w-full sm:grid-cols-2">
+              {/* Each item: smaller padding, font, and spacing */}
+              {[
+                {
+                  icon: <FiUser />,
+                  label: "Username",
+                  value: userInfo?.username,
+                },
+                {
+                  icon: <FiUser />,
+                  label: "Full Name",
+                  value: userInfo?.fullName,
+                },
+                { icon: <FiMail />, label: "Email", value: userInfo?.email },
+                { icon: <FiPhone />, label: "Phone", value: userInfo?.phone },
+                {
+                  icon: <FiBook />,
+                  label: "College/University",
+                  value: userInfo?.college || userInfo?.university,
+                },
+                {
+                  icon: <FiMapPin />,
+                  label: "Address",
+                  value: userInfo?.address,
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 border border-indigo-100"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    {item.icon}
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                      {item.label}
+                    </span>
+                  </div>
+                  <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
+                    {item.value || "N/A"}
+                  </p>
                 </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {userInfo?.username || "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <FiUser className="text-indigo-600" size={20} />
-                  <span className="text-sm font-semibold text-gray-600">
-                    Full Name
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {userInfo?.fullName || "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <FiMail className="text-indigo-600" size={20} />
-                  <span className="text-sm font-semibold text-gray-600">
-                    Email
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-gray-900 truncate">
-                  {userInfo?.email || "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <FiPhone className="text-indigo-600" size={20} />
-                  <span className="text-sm font-semibold text-gray-600">
-                    Phone
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  {userInfo?.phone || "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <FiBook className="text-indigo-600" size={20} />
-                  <span className="text-sm font-semibold text-gray-600">
-                    College/University
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-gray-900 truncate">
-                  {userInfo?.college || userInfo?.university || "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <FiMapPin className="text-indigo-600" size={20} />
-                  <span className="text-sm font-semibold text-gray-600">
-                    Address
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-gray-900 truncate">
-                  {userInfo?.address || "N/A"}
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-indigo-600">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-4 bg-indigo-100 rounded-2xl">
-                <FiAward size={28} className="text-indigo-600" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-10">
+          {[
+            {
+              color: "indigo",
+              icon: <FiAward />,
+              label: "Total Exams",
+              value: totalExams,
+            },
+            {
+              color: "green",
+              icon: <FiTrendingUp />,
+              label: "Average Score",
+              value: `${averageScore}%`,
+            },
+            {
+              color: "blue",
+              icon: <FiCheckCircle />,
+              label: "Correct Answers",
+              value: totalCorrect,
+            },
+            {
+              color: "red",
+              icon: <FiXCircle />,
+              label: "Wrong Answers",
+              value: totalWrong,
+            },
+          ].map(({ color, icon, label, value }) => (
+            <div
+              key={label}
+              className={`bg-white rounded-2xl shadow p-3 sm:p-4 border-l-4 border-${color}-500 flex flex-col items-start`}
+            >
+              <div className={`p-2 bg-${color}-100 rounded-xl mb-2`}>
+                {icon}
               </div>
+              <p className="text-xs sm:text-sm font-bold text-gray-600 mb-1">
+                {label}
+              </p>
+              <p className="text-lg sm:text-2xl font-extrabold text-gray-900">
+                {value}
+              </p>
             </div>
-            <p className="text-gray-600 text-sm font-bold mb-2">Total Exams</p>
-            <p className="text-4xl font-extrabold text-gray-900">
-              {totalExams}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-green-600">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-4 bg-green-100 rounded-2xl">
-                <FiTrendingUp size={28} className="text-green-600" />
-              </div>
-            </div>
-            <p className="text-gray-600 text-sm font-bold mb-2">
-              Average Score
-            </p>
-            <p className="text-4xl font-extrabold text-gray-900">
-              {averageScore}%
-            </p>
-          </div>
-
-          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-blue-600">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-4 bg-blue-100 rounded-2xl">
-                <FiCheckCircle size={28} className="text-blue-600" />
-              </div>
-            </div>
-            <p className="text-gray-600 text-sm font-bold mb-2">
-              Correct Answers
-            </p>
-            <p className="text-4xl font-extrabold text-gray-900">
-              {totalCorrect}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-3xl shadow-xl p-7 border-l-4 border-red-600">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-4 bg-red-100 rounded-2xl">
-                <FiXCircle size={28} className="text-red-600" />
-              </div>
-            </div>
-            <p className="text-gray-600 text-sm font-bold mb-2">
-              Wrong Answers
-            </p>
-            <p className="text-4xl font-extrabold text-gray-900">
-              {totalWrong}
-            </p>
-          </div>
+          ))}
         </div>
 
         {/* Exam Sections */}
-        <div className="space-y-12">
+        <div className="space-y-10">
           <ExamSection
             title="Live Exams"
             exams={liveExams}
@@ -590,20 +550,20 @@ const Profile = () => {
 
         {/* Empty State */}
         {totalExams === 0 && (
-          <div className="bg-white rounded-3xl shadow-2xl p-20 text-center border-2 border-dashed border-gray-300">
-            <div className="w-40 h-40 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-10">
-              <FiAward size={80} className="text-indigo-600" />
+          <div className="bg-white rounded-3xl shadow-2xl px-4 py-10 sm:px-10 sm:py-16 text-center border-2 border-dashed border-gray-300">
+            <div className="w-28 h-28 sm:w-40 sm:h-40 mx-auto mb-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
+              <FiAward size={56} className="sm:size-80 text-indigo-600" />
             </div>
-            <h3 className="text-4xl font-extrabold text-gray-900 mb-4">
+            <h3 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-3">
               No Exams Yet
             </h3>
-            <p className="text-gray-600 text-xl mb-10 max-w-lg mx-auto">
+            <p className="text-sm sm:text-lg text-gray-600 mb-8 max-w-md mx-auto">
               Start your learning journey by taking exams and track your
               progress!
             </p>
             <button
               onClick={() => navigate("/exams")}
-              className="px-10 py-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl font-extrabold hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all shadow-2xl hover:shadow-3xl text-xl"
+              className="w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl font-extrabold text-base sm:text-xl shadow-2xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all"
             >
               Browse Available Exams
             </button>
