@@ -22,6 +22,13 @@ const ExamSetupStep = ({ examData, setExamData }) => {
     console.log(`${type} changed:`, value);
     setExamData({ type, payload: value });
   };
+  const getLocalDateTime = () => {
+    const now = new Date();
+    // offset in ms
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    // subtract offset to get local time in ISO format
+    return new Date(now - tzOffset).toISOString().slice(0, 16);
+  };
 
   const renderLiveFields = () => (
     <>
@@ -61,7 +68,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
             }
             handleChange("SET_START_TIME", e.target.value);
           }}
-          min={new Date().toISOString().slice(0, 16)}
+          min={getLocalDateTime()}
           className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
