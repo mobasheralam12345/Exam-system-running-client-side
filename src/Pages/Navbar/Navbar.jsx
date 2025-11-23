@@ -15,10 +15,14 @@ const Navbar = () => {
   const [showBankMenu, setShowBankMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Separate refs for each dropdown
+  // Dropdown state for user icon dropdown
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  // Dropdown refs
   const bcsDropdownRef = useRef(null);
   const hscDropdownRef = useRef(null);
   const bankDropdownRef = useRef(null);
+  const userDropdownRef = useRef(null);
 
   const examTimeoutRef = useRef(null);
   const hscTimeoutRef = useRef(null);
@@ -28,11 +32,9 @@ const Navbar = () => {
   useEffect(() => {
     const syncAuth = () => {
       const hasToken = !!localStorage.getItem("userToken");
-      console.log("Auth sync triggered, token exists:", hasToken);
       setIsAuthenticated(hasToken);
     };
 
-    // Listen to storage events
     window.addEventListener("storage", syncAuth);
     window.addEventListener("authChange", syncAuth);
 
@@ -47,8 +49,8 @@ const Navbar = () => {
     localStorage.removeItem("userInfo");
     setIsAuthenticated(false);
     setIsMobileMenuOpen(false);
+    setUserDropdownOpen(false);
 
-    // Dispatch event to notify other components
     window.dispatchEvent(new Event("authChange"));
 
     Swal.fire({
@@ -98,8 +100,9 @@ const Navbar = () => {
     };
   }, []);
 
-  // Updated handleClickOutside to check all three dropdown refs
+  // Close dropdowns if clicking outside
   const handleClickOutside = (e) => {
+    // For exam dropdowns
     if (
       bcsDropdownRef.current &&
       !bcsDropdownRef.current.contains(e.target) &&
@@ -112,6 +115,13 @@ const Navbar = () => {
       setShowHscMenu(false);
       setShowBankMenu(false);
     }
+    // For user dropdown
+    if (
+      userDropdownRef.current &&
+      !userDropdownRef.current.contains(e.target)
+    ) {
+      setUserDropdownOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -119,6 +129,7 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Dropdown item component
   const DropdownItem = ({ to, onClick, children }) => (
     <Link
       to={to}
@@ -128,6 +139,7 @@ const Navbar = () => {
         setShowHscMenu(false);
         setShowBankMenu(false);
         setIsMobileMenuOpen(false);
+        setUserDropdownOpen(false);
       }}
       className="block px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 transform hover:translate-x-2"
     >
@@ -135,6 +147,7 @@ const Navbar = () => {
     </Link>
   );
 
+  // Mobile nav item component
   const MobileNavItem = ({ to, onClick, children }) => (
     <NavLink
       to={to}
@@ -383,8 +396,13 @@ const Navbar = () => {
               {isAuthenticated ? (
                 <>
                   {/* User Icon Dropdown */}
-                  <div className="relative group">
-                    <button className="flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-50 p-2 text-gray-600 hover:text-blue-600 transition-all duration-300 hover:scale-105 hover:shadow-md">
+                  <div className="relative" ref={userDropdownRef}>
+                    <button
+                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                      className="flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-50 p-2 text-gray-600 hover:text-blue-600 transition-all duration-300 hover:scale-105 hover:shadow-md"
+                      aria-haspopup="true"
+                      aria-expanded={userDropdownOpen}
+                    >
                       <svg
                         className="w-8 h-8"
                         fill="none"
@@ -399,48 +417,58 @@ const Navbar = () => {
                         />
                       </svg>
                     </button>
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-xl opacity-0 scale-95 transform -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto hover:pointer-events-auto transition-all duration-300 origin-top">
-                      <div className="py-2">
-                        <Link
-                          to="/dashboard"
-                          className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                    {userDropdownOpen && (
+                      <div
+                        className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-xl origin-top z-50"
+                        role="menu"
+                        aria-orientation="vertical"
+                      >
+                        <div className="py-2">
+                          <Link
+                            to="/dashboard"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                            role="menuitem"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                            />
-                          </svg>
-                          Dashboard
-                        </Link>
-                        <Link
-                          to="/profile"
-                          className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                              />
+                            </svg>
+                            Dashboard
+                          </Link>
+                          <Link
+                            to="/profile"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                            role="menuitem"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            />
-                          </svg>
-                          Profile
-                        </Link>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            </svg>
+                            Profile
+                          </Link>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <button
                     onClick={handleLogOut}
