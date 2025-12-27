@@ -153,6 +153,14 @@ const router = createBrowserRouter([
         path: "/admin/login",
         element: <AdminLogin></AdminLogin>,
       },
+      {
+        path: "/student/dashboard",
+        element: (
+          <PrivateRoute>
+            <StudentDashboard />
+          </PrivateRoute>
+        ),
+      },
     ],
   },
 ]);

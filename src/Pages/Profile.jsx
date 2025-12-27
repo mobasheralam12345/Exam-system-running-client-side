@@ -1,576 +1,392 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiUser,
-  FiMail,
-  FiCalendar,
-  FiAward,
-  FiEye,
-  FiBarChart2,
-  FiChevronLeft,
-  FiChevronRight,
-  FiSettings,
-  FiLogOut,
-  FiTrendingUp,
-  FiCheckCircle,
-  FiXCircle,
-  FiPhone,
-  FiMapPin,
-  FiBook,
-} from "react-icons/fi";
-
-const ITEMS_PER_PAGE = 5;
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Eye,
+  EyeOff,
+  Camera,
+} from "lucide-react";
+import Swal from "sweetalert2";
+import useProfile from "../hooks/useProfile";
+import ProfileDisplay from "../components/ProfileDisplay";
+import PasswordVerificationModal from "../components/PasswordVerificationModal";
+import WebcamCaptureModal from "../components/WebcamCaptureModal";
+import {
+  submitVerificationImagesWithRetry,
+  isUserVerified,
+} from "../services/imageStorageService";
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState(null);
-  const [liveExams, setLiveExams] = useState([]);
-  const [hscExams, setHscExams] = useState([]);
-  const [bcsExams, setBcsExams] = useState([]);
-  const [bankExams, setBankExams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const {
+    profile,
+    verificationStatus,
+    loading,
+    error,
+    refetchVerificationStatus,
+  } = useProfile();
 
-  // Pagination states
-  const [livePage, setLivePage] = useState(0);
-  const [hscPage, setHscPage] = useState(0);
-  const [bcsPage, setBcsPage] = useState(0);
-  const [bankPage, setBankPage] = useState(0);
+  const [showVerification, setShowVerification] = useState(false);
+  const [showVerificationDetails, setShowVerificationDetails] = useState(false);
+  const [isWebcamModalOpen, setIsWebcamModalOpen] = useState(false);
+  const [isSubmittingImages, setIsSubmittingImages] = useState(false);
 
+  // Password gate states
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // Determine initial verification state
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const storedUserInfo = JSON.parse(localStorage.getItem("userInfo"));
-        setUserInfo(storedUserInfo);
+    if (verificationStatus) {
+      const isVerified =
+        verificationStatus.status === "verified" ||
+        verificationStatus.isVerified === true;
+      setShowVerification(!isVerified);
+      // Reset password gate when verification status changes
+      setPasswordVerified(false);
+    }
+  }, [verificationStatus]);
 
-        const userId = storedUserInfo?._id || storedUserInfo?.id;
+  const handleVerificationComplete = async () => {
+    try {
+      await refetchVerificationStatus();
+      setShowVerification(false);
+      setPasswordVerified(false);
+    } catch (err) {
+      console.error("Error refreshing verification status:", err);
+    }
+  };
 
-        if (!userId) {
-          navigate("/login");
-          return;
-        }
+  const getVerificationInfo = () => {
+    const status = verificationStatus?.status || verificationStatus?.isVerified;
 
-        // Fetch Live Exam submissions
-        const liveRes = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND_URL
-          }/liveExam/submission/user/${userId}`
-        );
-        const liveData = await liveRes.json();
-        setLiveExams(liveData.submissions || []);
+    if (status === "verified" || status === true) {
+      return {
+        icon: CheckCircle,
+        title: "Verified",
+        description: "Your identity has been verified successfully",
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+        borderColor: "border-green-500",
+      };
+    } else if (status === "pending") {
+      return {
+        icon: Clock,
+        title: "Verification Pending",
+        description:
+          "Your verification is being reviewed. Please check back later.",
+        color: "text-yellow-600",
+        bgColor: "bg-yellow-50",
+        borderColor: "border-yellow-500",
+      };
+    } else {
+      return {
+        icon: AlertCircle,
+        title: "Not Verified",
+        description: "Please complete verification to access exam features",
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-500",
+      };
+    }
+  };
 
-        // Fetch Practice Exam submissions
-        const practiceRes = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/practice-exam/user/${userId}`
-        );
-        const practiceData = await practiceRes.json();
+  const verificationInfo = getVerificationInfo();
+  const VerificationIcon = verificationInfo.icon;
 
-        // Categorize practice exams
-        const submissions = practiceData.submissions || [];
-        setHscExams(
-          submissions.filter((s) => s.examSnapshot.examType === "HSC")
-        );
-        setBcsExams(
-          submissions.filter((s) => s.examSnapshot.examType === "BCS")
-        );
-        setBankExams(
-          submissions.filter((s) => s.examSnapshot.examType === "Bank")
-        );
+  // Handle "Verify Now" button - navigate to photo verification
+  const handleVerifyNow = () => {
+    // First verify password, then show webcam modal
+    setShowPasswordModal(true);
+  };
 
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setLoading(false);
+  // Password verified successfully: open webcam modal
+  const handlePasswordVerified = () => {
+    setPasswordVerified(true);
+    setShowPasswordModal(false);
+    setIsWebcamModalOpen(true);
+  };
+
+  // Modal cancelled/closed: keep verification locked
+  const handlePasswordModalClose = () => {
+    setShowPasswordModal(false);
+    // Do NOT set passwordVerified=true on cancel
+  };
+
+  // Handle webcam capture completion
+  const handleWebcamCapture = async (images) => {
+    setIsWebcamModalOpen(false);
+    setIsSubmittingImages(true);
+
+    try {
+      const result = await submitVerificationImagesWithRetry(images, 3);
+
+      if (result.success && result.verified) {
+        Swal.fire({
+          icon: "success",
+          title: "Verification Successful!",
+          text: "Your identity has been verified. You can now access all exam features.",
+          confirmButtonColor: "#10B981",
+        });
+
+        // Refresh verification status
+        await refetchVerificationStatus();
+        setPasswordVerified(false);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Verification Failed",
+          text:
+            result.error || "Failed to verify your identity. Please try again.",
+          confirmButtonColor: "#EF4444",
+        });
       }
-    };
-
-    fetchUserData();
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("userInfo");
-    navigate("/login");
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // Calculate overall statistics
-  const allExams = [...liveExams, ...hscExams, ...bcsExams, ...bankExams];
-  const totalExams = allExams.length;
-  const averageScore =
-    totalExams > 0
-      ? (
-          allExams.reduce(
-            (sum, exam) => sum + exam.resultMetrics.percentage,
-            0
-          ) / totalExams
-        ).toFixed(1)
-      : 0;
-  const totalCorrect = allExams.reduce(
-    (sum, exam) => sum + exam.resultMetrics.correctAnswers,
-    0
-  );
-  const totalWrong = allExams.reduce(
-    (sum, exam) => sum + exam.resultMetrics.wrongAnswers,
-    0
-  );
-
-  const ExamCard = ({ exam, type }) => {
-    const isLive = type === "live";
-    const snapshot = exam.examSnapshot;
-    const metrics = exam.resultMetrics;
-
-    return (
-      <div className="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-indigo-300 h-full flex flex-col">
-        {/* Card Header */}
-        <div
-          className={`p-6 ${
-            metrics.percentage >= 80
-              ? "bg-gradient-to-br from-green-50 to-emerald-50"
-              : metrics.percentage >= 60
-              ? "bg-gradient-to-br from-blue-50 to-cyan-50"
-              : metrics.percentage >= 40
-              ? "bg-gradient-to-br from-amber-50 to-orange-50"
-              : "bg-gradient-to-br from-red-50 to-pink-50"
-          }`}
-        >
-          <h3 className="font-bold text-gray-900 text-xl mb-3 line-clamp-2 min-h-[56px] group-hover:text-indigo-600 transition-colors">
-            {snapshot.title}
-          </h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            {!isLive && snapshot.category && (
-              <span className="px-3 py-1.5 bg-white text-indigo-700 text-xs font-bold rounded-full shadow-sm border border-indigo-200">
-                {snapshot.category === "full" ? "Full Exam" : "Subject-wise"}
-              </span>
-            )}
-            <span className="flex items-center gap-1.5 text-gray-600 text-sm font-semibold bg-white px-3 py-1.5 rounded-full shadow-sm">
-              <FiCalendar size={14} />
-              {formatDate(exam.createdAt)}
-            </span>
-          </div>
-        </div>
-
-        {/* Score Section */}
-        <div className="px-6 py-5 bg-gray-50">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-gray-600 font-semibold text-sm">
-              Your Score
-            </span>
-            <div
-              className={`px-4 py-2 rounded-xl font-bold text-2xl ${
-                metrics.percentage >= 80
-                  ? "bg-green-100 text-green-700"
-                  : metrics.percentage >= 60
-                  ? "bg-blue-100 text-blue-700"
-                  : metrics.percentage >= 40
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              {metrics.percentage}%
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-              <FiCheckCircle
-                size={18}
-                className="text-green-600 mx-auto mb-1"
-              />
-              <p className="text-xs text-gray-500 mb-1 font-medium">Correct</p>
-              <p className="text-lg font-bold text-green-600">
-                {metrics.correctAnswers}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-              <FiXCircle size={18} className="text-red-600 mx-auto mb-1" />
-              <p className="text-xs text-gray-500 mb-1 font-medium">Wrong</p>
-              <p className="text-lg font-bold text-red-600">
-                {metrics.wrongAnswers}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-              <FiAward size={18} className="text-indigo-600 mx-auto mb-1" />
-              <p className="text-xs text-gray-500 mb-1 font-medium">Marks</p>
-              <p className="text-lg font-bold text-indigo-600">
-                {metrics.totalMarksObtained.toFixed(0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons - stick bottom for mobile */}
-        <div className={`p-6 bg-white mt-auto ${isLive ? "space-y-3" : ""}`}>
-          <button
-            onClick={() => navigate(`/exam-review/${exam._id}`)}
-            className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
-          >
-            <FiEye size={20} />
-            Show Review
-          </button>
-
-          {isLive && (
-            <button
-              onClick={() => {
-                const examType = isLive ? "live" : "practice";
-                navigate(`/exam-review/${examType}/${exam._id}`);
-              }}
-              className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
-            >
-              <FiEye size={20} />
-              Show Leaderboard
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const ExamSection = ({
-    title,
-    exams,
-    page,
-    setPage,
-    type,
-    icon,
-    gradientFrom,
-    gradientTo,
-  }) => {
-    const startIndex = page * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const paginatedExams = exams.slice(startIndex, endIndex);
-    const totalPages = Math.ceil(exams.length / ITEMS_PER_PAGE);
-
-    if (exams.length === 0) return null;
-
-    return (
-      <div className="mb-10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-          <div className="flex items-center gap-4">
-            <div
-              className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} shadow-lg`}
-            >
-              {icon}
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                {title}
-              </h2>
-              <p className="text-sm text-gray-600 font-semibold mt-1">
-                {exams.length} exams completed
-              </p>
-            </div>
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-3 bg-white rounded-2xl shadow-lg p-2 border border-gray-200">
-              <button
-                onClick={() => setPage(Math.max(0, page - 1))}
-                disabled={page === 0}
-                className="p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <FiChevronLeft size={22} />
-              </button>
-              <span className="text-base font-bold text-gray-700 px-4">
-                {page + 1} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-                disabled={page >= totalPages - 1}
-                className="p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <FiChevronRight size={22} />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Responsive grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 sm:gap-6">
-          {paginatedExams.map((exam) => (
-            <ExamCard key={exam._id} exam={exam} type={type} />
-          ))}
-        </div>
-      </div>
-    );
+    } catch (error) {
+      console.error("Verification error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "An error occurred during verification.",
+        confirmButtonColor: "#EF4444",
+      });
+    } finally {
+      setIsSubmittingImages(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-        <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-200"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8 space-y-4">
+            <div className="skeleton h-12 w-48"></div>
+            <div className="skeleton h-40 w-full"></div>
+            <div className="skeleton h-40 w-full"></div>
           </div>
-          <p className="text-gray-700 font-bold text-xl">
-            Loading your dashboard...
-          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-12">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-md sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-8">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 items-center justify-between py-3 sm:py-0 sm:h-20">
-            <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              My Dashboard
-            </div>
-
-            {/* Settings & profile menu */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/settings")}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all shadow-sm"
-              >
-                <FiSettings size={20} />
-                <span className="hidden sm:inline">Settings</span>
-              </button>
-
-              <div className="relative">
-                <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-md"
-                >
-                  <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center text-base font-bold">
-                    {userInfo?.username?.charAt(0).toUpperCase() || "U"}
-                  </div>
-                  <span className="hidden md:inline">
-                    {userInfo?.username || "User"}
-                  </span>
-                </button>
-
-                {/* Profile menu */}
-                {showProfileMenu && (
-                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50">
-                    <button
-                      onClick={() => {
-                        navigate("/profile");
-                        setShowProfileMenu(false);
-                      }}
-                      className="w-full px-5 py-3 text-left hover:bg-indigo-50 flex items-center gap-3 text-gray-700 font-semibold transition-colors"
-                    >
-                      <FiUser size={20} />
-                      View Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate("/settings");
-                        setShowProfileMenu(false);
-                      }}
-                      className="w-full px-5 py-3 text-left hover:bg-indigo-50 flex items-center gap-3 text-gray-700 font-semibold transition-colors"
-                    >
-                      <FiSettings size={20} />
-                      Settings
-                    </button>
-                    <div className="border-t border-gray-200 my-2"></div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full px-5 py-3 text-left hover:bg-red-50 flex items-center gap-3 text-red-600 font-semibold transition-colors"
-                    >
-                      <FiLogOut size={20} />
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-[1400px] mx-auto px-2 sm:px-4 md:px-8 pt-6">
-        {/* User Profile Card */}
-        <div className="bg-white rounded-3xl shadow-2xl p-4 md:p-6 lg:p-8 mb-8 border border-gray-200">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 md:gap-8">
-            {/* Profile Image */}
-            <div className="relative mb-4 md:mb-0 md:mr-6">
-              {userInfo?.profileImage ? (
-                <img
-                  src={userInfo.profileImage}
-                  alt="Profile"
-                  className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover border-2 md:border-4 border-indigo-200 shadow-lg"
-                />
-              ) : (
-                <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl sm:text-4xl md:text-5xl font-bold shadow-lg border-2 md:border-4 border-white">
-                  {userInfo?.username?.charAt(0).toUpperCase() || "U"}
-                </div>
-              )}
-              {/* Online indicator */}
-              <div className="absolute bottom-0 right-0 w-4 h-4 md:w-6 md:h-6 bg-green-500 rounded-full border-2 md:border-4 border-white shadow-lg"></div>
-            </div>
-
-            {/* Responsive Info Grid */}
-            <div className="flex-1 grid grid-cols-1 gap-2 sm:gap-4 w-full sm:grid-cols-2">
-              {/* Each item: smaller padding, font, and spacing */}
-              {[
-                {
-                  icon: <FiUser />,
-                  label: "Username",
-                  value: userInfo?.username,
-                },
-                {
-                  icon: <FiUser />,
-                  label: "Full Name",
-                  value: userInfo?.fullName,
-                },
-                { icon: <FiMail />, label: "Email", value: userInfo?.email },
-                { icon: <FiPhone />, label: "Phone", value: userInfo?.phone },
-                {
-                  icon: <FiBook />,
-                  label: "College/University",
-                  value: userInfo?.college || userInfo?.university,
-                },
-                {
-                  icon: <FiMapPin />,
-                  label: "Address",
-                  value: userInfo?.address,
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 border border-indigo-100"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {item.icon}
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                      {item.label}
-                    </span>
-                  </div>
-                  <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
-                    {item.value || "N/A"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-10">
-          {[
-            {
-              color: "indigo",
-              icon: <FiAward />,
-              label: "Total Exams",
-              value: totalExams,
-            },
-            {
-              color: "green",
-              icon: <FiTrendingUp />,
-              label: "Average Score",
-              value: `${averageScore}%`,
-            },
-            {
-              color: "blue",
-              icon: <FiCheckCircle />,
-              label: "Correct Answers",
-              value: totalCorrect,
-            },
-            {
-              color: "red",
-              icon: <FiXCircle />,
-              label: "Wrong Answers",
-              value: totalWrong,
-            },
-          ].map(({ color, icon, label, value }) => (
-            <div
-              key={label}
-              className={`bg-white rounded-2xl shadow p-3 sm:p-4 border-l-4 border-${color}-500 flex flex-col items-start`}
-            >
-              <div className={`p-2 bg-${color}-100 rounded-xl mb-2`}>
-                {icon}
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-gray-600 mb-1">
-                {label}
-              </p>
-              <p className="text-lg sm:text-2xl font-extrabold text-gray-900">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Exam Sections */}
-        <div className="space-y-10">
-          <ExamSection
-            title="Live Exams"
-            exams={liveExams}
-            page={livePage}
-            setPage={setLivePage}
-            type="live"
-            icon={<FiBarChart2 size={32} className="text-white" />}
-            gradientFrom="from-purple-500"
-            gradientTo="to-pink-600"
-          />
-
-          <ExamSection
-            title="BCS Exams"
-            exams={bcsExams}
-            page={bcsPage}
-            setPage={setBcsPage}
-            type="bcs"
-            icon={<FiAward size={32} className="text-white" />}
-            gradientFrom="from-blue-500"
-            gradientTo="to-cyan-600"
-          />
-
-          <ExamSection
-            title="HSC Exams"
-            exams={hscExams}
-            page={hscPage}
-            setPage={setHscPage}
-            type="hsc"
-            icon={<FiUser size={32} className="text-white" />}
-            gradientFrom="from-green-500"
-            gradientTo="to-emerald-600"
-          />
-
-          <ExamSection
-            title="Bank Exams"
-            exams={bankExams}
-            page={bankPage}
-            setPage={setBankPage}
-            type="bank"
-            icon={<FiAward size={32} className="text-white" />}
-            gradientFrom="from-amber-500"
-            gradientTo="to-orange-600"
-          />
-        </div>
-
-        {/* Empty State */}
-        {totalExams === 0 && (
-          <div className="bg-white rounded-3xl shadow-2xl px-4 py-10 sm:px-10 sm:py-16 text-center border-2 border-dashed border-gray-300">
-            <div className="w-28 h-28 sm:w-40 sm:h-40 mx-auto mb-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-              <FiAward size={56} className="sm:size-80 text-indigo-600" />
-            </div>
-            <h3 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-3">
-              No Exams Yet
-            </h3>
-            <p className="text-sm sm:text-lg text-gray-600 mb-8 max-w-md mx-auto">
-              Start your learning journey by taking exams and track your
-              progress!
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4 md:px-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Page Title */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
+              My Profile
+            </h1>
+            <p className="text-gray-600 text-lg">
+              Manage your account and verification status
             </p>
-            <button
-              onClick={() => navigate("/exams")}
-              className="w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl font-extrabold text-base sm:text-xl shadow-2xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all"
+          </motion.div>
+
+          {/* Verification Status Alert */}
+          {verificationStatus && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`border-l-4 ${verificationInfo.borderColor} ${verificationInfo.bgColor} rounded-lg p-4 md:p-6 mb-8 shadow-md`}
             >
-              Browse Available Exams
-            </button>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
+                  <VerificationIcon
+                    className={`w-6 h-6 ${verificationInfo.color} flex-shrink-0 mt-1`}
+                  />
+                  <div className="flex-1">
+                    <h2
+                      className={`text-xl font-bold ${verificationInfo.color} mb-2`}
+                    >
+                      {verificationInfo.title}
+                    </h2>
+                    <p
+                      className={`${verificationInfo.color
+                        .replace("text-", "text-")
+                        .replace("-600", "-700")}`}
+                    >
+                      {verificationInfo.description}
+                    </p>
+                    {verificationStatus?.status === "pending" &&
+                      verificationStatus?.submittedAt && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Submitted on:{" "}
+                          {new Date(
+                            verificationStatus.submittedAt
+                          ).toLocaleDateString()}
+                        </p>
+                      )}
+                    {(verificationStatus?.status === "verified" ||
+                      verificationStatus?.isVerified) &&
+                      verificationStatus?.verifiedAt && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Verified on:{" "}
+                          {new Date(
+                            verificationStatus.verifiedAt
+                          ).toLocaleDateString()}
+                        </p>
+                      )}
+                  </div>
+                </div>
+
+                {/* Verify Now Button - Show when not verified */}
+                {verificationStatus?.status !== "verified" &&
+                  !verificationStatus?.isVerified && (
+                    <button
+                      onClick={handleVerifyNow}
+                      disabled={isSubmittingImages}
+                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex-shrink-0 ${
+                        isSubmittingImages
+                          ? "opacity-50 cursor-not-allowed"
+                          : verificationInfo.color === "text-red-600"
+                          ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                          : "bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800"
+                      }`}
+                    >
+                      {isSubmittingImages ? (
+                        <>
+                          <span className="loading loading-spinner loading-sm"></span>
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-5 h-5" />
+                          Verify Now
+                        </>
+                      )}
+                    </button>
+                  )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Profile and Verification Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Profile Section */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-2"
+            >
+              <ProfileDisplay verificationStatus={verificationStatus} />
+            </motion.div>
+
+            {/* Sidebar - Verification */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-4"
+            >
+              {/* Verification Status Card */}
+              <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                  Verification Status
+                </h3>
+
+                <div className="space-y-3">
+                  {/* Status Badge */}
+                  <div>
+                    <p className="text-sm text-gray-600 font-semibold mb-2">
+                      Current Status
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <VerificationIcon
+                        className={`w-5 h-5 ${verificationInfo.color}`}
+                      />
+                      <span className={`font-bold ${verificationInfo.color}`}>
+                        {verificationInfo.title}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  {verificationStatus?.details && (
+                    <div className="pt-3 border-t">
+                      <p className="text-sm text-gray-600 font-semibold mb-2">
+                        Details
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {verificationStatus.details}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Info Box */}
+                  <div className="pt-3 border-t">
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {verificationStatus?.status === "verified" ||
+                      verificationStatus?.isVerified ? (
+                        <span className="text-green-700">
+                          ✓ Your identity has been verified. You can now
+                          participate in all exams and monitoring features.
+                        </span>
+                      ) : verificationStatus?.status === "pending" ? (
+                        <span className="text-yellow-700">
+                          ⏳ Your verification is being reviewed. This usually
+                          takes 24-48 hours.
+                        </span>
+                      ) : (
+                        <span className="text-red-700">
+                          Complete the verification process to access exams.
+                          Click "Verify Now" above to get started.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Tips */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border border-blue-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Security Tips
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex gap-2">
+                    <span>✓</span>
+                    <span>Keep your email secure</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>✓</span>
+                    <span>Update profile regularly</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>✓</span>
+                    <span>Complete verification for exams</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>✓</span>
+                    <span>Clear photos for verification</span>
+                  </li>
+                </ul>
+              </div>
+            </motion.div>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* Password Verification Modal */}
+      <PasswordVerificationModal
+        isOpen={showPasswordModal}
+        onVerified={handlePasswordVerified}
+        onClose={handlePasswordModalClose}
+      />
+
+      {/* Webcam Capture Modal */}
+      <WebcamCaptureModal
+        isOpen={isWebcamModalOpen}
+        onClose={() => {
+          setIsWebcamModalOpen(false);
+          setPasswordVerified(false);
+        }}
+        onComplete={handleWebcamCapture}
+      />
+    </>
   );
 };
 

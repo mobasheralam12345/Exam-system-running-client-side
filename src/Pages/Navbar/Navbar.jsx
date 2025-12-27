@@ -425,7 +425,7 @@ const Navbar = () => {
                       >
                         <div className="py-2">
                           <Link
-                            to="/dashboard"
+                            to="/student/dashboard"
                             onClick={() => setUserDropdownOpen(false)}
                             className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
                             role="menuitem"
