@@ -68,6 +68,25 @@ const LiveExamRoom = () => {
 
         const data = await response.json();
 
+        // Check if verification is required
+        if (data.requiresVerification) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Verification Required",
+            html: data.message || "Only verified users can access live exams. Please complete your verification first.",
+            confirmButtonText: "Go to Verification",
+            showCancelButton: true,
+            cancelButtonText: "Cancel",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/profile");
+            } else {
+              navigate("/live-exams");
+            }
+          });
+          return;
+        }
+
         if (!data.success || !data.isRegistered) {
           await Swal.fire({
             icon: "warning",

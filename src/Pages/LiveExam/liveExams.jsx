@@ -404,7 +404,7 @@ const LiveExamsPage = () => {
           headers.Authorization = `Bearer ${token}`;
         }
         
-        const response = await fetch(`${BACKEND_URL}/liveExam/active`, {
+        const response = await fetch(`${BACKEND_URL}/liveExam/mock`, {
           headers,
         });
         
@@ -485,12 +485,28 @@ const LiveExamsPage = () => {
           timerProgressBar: true,
         });
       } else {
-        await Swal.fire({
-          icon: "error",
-          title: "Registration Failed",
-          text: data.message || "Failed to register for exam",
-          confirmButtonText: "OK",
-        });
+        // Check if verification is required
+        if (data.requiresVerification) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Verification Required",
+            html: data.message || "Only verified users can register for live exams. Please complete your verification first.",
+            confirmButtonText: "Go to Verification",
+            showCancelButton: true,
+            cancelButtonText: "Cancel",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/profile");
+            }
+          });
+        } else {
+          await Swal.fire({
+            icon: "error",
+            title: "Registration Failed",
+            text: data.message || "Failed to register for exam",
+            confirmButtonText: "OK",
+          });
+        }
         throw new Error(data.message);
       }
     } catch (error) {
@@ -529,6 +545,23 @@ const LiveExamsPage = () => {
       );
 
       const data = await response.json();
+
+      // Check if verification is required
+      if (data.requiresVerification) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Verification Required",
+          html: data.message || "Only verified users can access live exams. Please complete your verification first.",
+          confirmButtonText: "Go to Verification",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/profile");
+          }
+        });
+        return false;
+      }
 
       if (!data.success || !data.isRegistered) {
         await Swal.fire({
