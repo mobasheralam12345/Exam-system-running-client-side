@@ -382,7 +382,22 @@ const LiveExamsPage = () => {
     const fetchLiveExams = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${BACKEND_URL}/liveExam/active`);
+        
+        // Get authentication token if available
+        const token = localStorage.getItem("userToken");
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        
+        // Add Authorization header if token exists
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(`${BACKEND_URL}/liveExam/mock`, {
+          headers,
+        });
+        
         if (!response.ok) {
           throw new Error("Failed to fetch live exams");
         }
