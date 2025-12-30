@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import ExamHeader from "./components/ExamHeader";
 import QuestionDisplay from "./components/QuestionDisplay";
 import NavigationSidebar from "./components/NavigationSidebar";
@@ -37,6 +38,62 @@ const LiveExamRoom = () => {
 
   useEffect(() => {
     const passedExamData = location.state?.examData;
+    
+    // Check registration before allowing exam entry
+    const checkRegistration = async () => {
+      if (!passedExamData) return;
+      
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please login to enter the exam",
+          confirmButtonText: "Go to Login",
+        }).then(() => {
+          navigate("/login");
+        });
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/liveExam/registration/${passedExamData._id || passedExamData.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!data.success || !data.isRegistered) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Registration Required",
+            text: "You must register for this exam before entering. Please register first.",
+            confirmButtonText: "Go to Exams",
+          }).then(() => {
+            navigate("/live-exams");
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Check registration error:", error);
+        await Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error checking registration status. Please try again.",
+          confirmButtonText: "OK",
+        }).then(() => {
+          navigate("/live-exams");
+        });
+        return;
+      }
+    };
+
+    checkRegistration();
     if (passedExamData) {
       setExamData(passedExamData);
 
@@ -267,8 +324,14 @@ const LiveExamRoom = () => {
 
     // If userId is missing, alert and stop
     if (!userId || !username) {
-      alert("User not logged in. Please login again.");
-      navigate("/login");
+      await Swal.fire({
+        icon: "warning",
+        title: "Session Expired",
+        text: "User not logged in. Please login again.",
+        confirmButtonText: "Go to Login",
+      }).then(() => {
+        navigate("/login");
+      });
       return;
     }
 
@@ -376,12 +439,22 @@ const LiveExamRoom = () => {
       } else {
         const error = await response.json();
         console.error("❌ Backend error:", error);
-        alert(`Submission failed: ${error.message}`);
+        await Swal.fire({
+          icon: "error",
+          title: "Submission Failed",
+          text: error.message || "Failed to submit exam. Please try again.",
+          confirmButtonText: "OK",
+        });
         await exitFullscreen();
       }
     } catch (error) {
       console.error("❌ Network error:", error);
-      alert("Network error. Please try again.");
+      await Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Network error. Please try again.",
+        confirmButtonText: "OK",
+      });
       await exitFullscreen();
     } finally {
       setSubmissionLoading(false);

@@ -30,6 +30,30 @@ const ExamSetupStep = ({ examData, setExamData }) => {
     return new Date(now - tzOffset).toISOString().slice(0, 16);
   };
 
+  // Convert UTC datetime to local datetime for datetime-local input
+  const convertUTCToLocal = (utcString) => {
+    if (!utcString) return "";
+    const date = new Date(utcString);
+    // Get local time string in format YYYY-MM-DDTHH:mm
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  // Get current local datetime for min attribute
+  const getCurrentLocalDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const renderLiveFields = () => (
     <>
       {/* HSC Group (only if exam type is HSC) */}
@@ -58,9 +82,15 @@ const ExamSetupStep = ({ examData, setExamData }) => {
         </label>
         <input
           type="datetime-local"
-          value={examData.startTime || ""}
+          value={convertUTCToLocal(examData.startTime)}
           onChange={(e) => {
-            const selectedTime = e.target.value; // e.g., "2025-11-23T04:45"
+            const selectedTime = e.target.value; // e.g., "2025-11-23T04:45" (local time)
+            if (!selectedTime) {
+              handleChange("SET_START_TIME", "");
+              return;
+            }
+
+            // Create date object treating input as local time
             const selectedDate = new Date(selectedTime);
 
             const now = new Date();
@@ -73,7 +103,7 @@ const ExamSetupStep = ({ examData, setExamData }) => {
             const utcString = selectedDate.toISOString(); // e.g., "2025-11-23T04:45:00.000Z"
             handleChange("SET_START_TIME", utcString);
           }}
-          min={new Date().toISOString().slice(0, 16)} // optional, prevents past selection
+          min={getCurrentLocalDateTime()} // prevents past selection (in local time)
           className="w-full px-3 py-2 border border-gray-300 text-black bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
