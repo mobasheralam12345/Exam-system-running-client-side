@@ -404,7 +404,7 @@ const LiveExamsPage = () => {
           headers.Authorization = `Bearer ${token}`;
         }
         
-        const response = await fetch(`${BACKEND_URL}/liveExam/mock`, {
+        const response = await fetch(`${BACKEND_URL}/liveExam/active`, {
           headers,
         });
         
