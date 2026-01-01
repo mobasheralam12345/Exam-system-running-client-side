@@ -209,7 +209,11 @@ const Profile = () => {
         {/* Action Buttons - stick bottom for mobile */}
         <div className={`p-6 bg-white mt-auto ${isLive ? "space-y-3" : ""}`}>
           <button
-            onClick={() => navigate(`/exam-review/${exam._id}`)}
+            onClick={() => {
+              // Store exam type in localStorage for API call
+              localStorage.setItem(`exam_${exam._id}_type`, isLive ? "live" : "practice");
+              navigate(`/student/exam-review/${exam._id}`);
+            }}
             className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
           >
             <FiEye size={20} />
@@ -219,12 +223,14 @@ const Profile = () => {
           {isLive && (
             <button
               onClick={() => {
-                const examType = isLive ? "live" : "practice";
-                navigate(`/exam-review/${examType}/${exam._id}`);
+                // Navigate to leaderboard with examId from the submission
+                // Handle case where examId might be an object with _id property
+                const examIdFromSubmission = exam.examId?._id || exam.examId || exam._id;
+                navigate(`/student/leaderboard/${examIdFromSubmission}`);
               }}
-              className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
+              className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg text-base"
             >
-              <FiEye size={20} />
+              <FiBarChart2 size={20} />
               Show Leaderboard
             </button>
           )}

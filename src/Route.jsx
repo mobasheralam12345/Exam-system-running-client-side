@@ -7,6 +7,8 @@ import Login from "./Pages/Login/Login";
 import Register from "./Pages/Register/Register";
 import BcsExam from "./Pages/BcsExam/BcsExam";
 import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
+import StudentExamReview from "./Pages/StudentDashboard/StudentExamReview";
+import StudentLeaderboard from "./Pages/StudentDashboard/StudentLeaderboard";
 import BcsSubjectWise from "./Pages/BcsExam/subjectWiseBCS";
 import HscExam from "../src/Pages/HscExam/HscExam";
 import HscSubjectWiseExam from "./Pages/HscExam/HscSubjectWiseExam";
@@ -181,6 +183,22 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <StudentDashboard />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/student/exam-review/:submissionId",
+        element: (
+          <PrivateRoute>
+            <StudentExamReview />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/student/leaderboard/:examId",
+        element: (
+          <PrivateRoute>
+            <StudentLeaderboard />
           </PrivateRoute>
         ),
       },
