@@ -192,6 +192,56 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Exam History */}
+            <div
+              onClick={() => navigate("/admin/exam-history")}
+              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 overflow-hidden group"
+            >
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-6">
+                <div className="w-16 h-16 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-4">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Exam History
+                </h3>
+                <p className="text-blue-100">
+                  View finished exams and rankings
+                </p>
+              </div>
+              <div className="p-6 bg-white group-hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 font-medium">
+                    View Rankings
+                  </span>
+                  <svg
+                    className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -26,6 +26,9 @@ import AdminManagement from "./Pages/Admin/AdminManagement";
 import AdminRegistration from "./Pages/Admin/AdminRegistration";
 import AdminLogin from "./Pages/Admin/AdminLogin";
 import AdminPrivateRoute from "./Pages/AdminPrivateRoute";
+import ExamHistory from "./Pages/Admin/ExamHistory";
+import ExamRanking from "./Pages/Admin/ExamRanking";
+import UserProfile from "./Pages/UserProfile";
 
 const router = createBrowserRouter([
   {
@@ -122,6 +125,10 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/user-profile",
+        element: <UserProfile />,
+      },
+      {
         path: "/admin",
         element: (
           <AdminPrivateRoute>
@@ -152,6 +159,22 @@ const router = createBrowserRouter([
       {
         path: "/admin/login",
         element: <AdminLogin></AdminLogin>,
+      },
+      {
+        path: "/admin/exam-history",
+        element: (
+          <AdminPrivateRoute>
+            <ExamHistory />
+          </AdminPrivateRoute>
+        ),
+      },
+      {
+        path: "/admin/exam-history/:examId/ranking",
+        element: (
+          <AdminPrivateRoute>
+            <ExamRanking />
+          </AdminPrivateRoute>
+        ),
       },
       {
         path: "/student/dashboard",
