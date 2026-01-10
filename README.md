@@ -1,128 +1,105 @@
-# Online Examination System
+# Online Exam System - Client
 
-A comprehensive online examination platform built with React and Vite, supporting live exams, practice tests, and detailed performance analytics.
+The frontend application for the Online Exam System, built with **React** and **Vite**. It delivers a high-performance, responsive interface for students to take exams and admins to manage the platform.
 
-## Features
+## 🔗 Related Repository
 
-- 🎯 Live and Practice Exams (BCS, HSC, Bank exams)
-- 📊 Detailed Performance Analytics
-- 🏆 Real-time Leaderboards
-- 👤 User Profiles with Exam History
-- 📱 Responsive Design
-- 🔐 Secure Authentication
+- **Server**: [../server/README.md](../server/README.md)
 
-## Tech Stack
+## ✨ Frontend Features
 
-- **Frontend**: React 18, Vite
-- **Styling**: TailwindCSS, DaisyUI
-- **State Management**: TanStack Query
-- **Routing**: React Router v6
-- **UI Components**: Heroicons, Lucide React
-- **PDF Generation**: jsPDF
-- **Authentication**: Firebase, JWT
+### 🎓 Student Interface
 
-## Getting Started
+**1. Live Assessment Engine**
 
-### Prerequisites
+- **Strict Proctoring**:
+  - **Webcam Monitoring**: Uses `face-api.js` for real-time face detection. Alerts on: missing face, multiple faces, head turning.
+  - **Fullscreen Enforcement**: Forces fullscreen mode; logs violations on exit (`ESC`).
+  - **Focus Tracking**: Detects browser tab switching or window blurring.
+- **Real-time Timer**: Syncs with server time.
+- **Dynamic Interface**: Supports complex question types (images, special symbols).
 
-- Node.js (v16 or higher)
-- npm or yarn
+**2. Practice Mode**
 
-### Installation
+- **Flexible Selection**: Choose exams by Category (BCS/HSC/Bank) -> Mode (Subject/Year).
+- **Review System**:
+  - Detailed score cards with accuracy percentage.
+  - **PDF Download**: Generates a complete exam report with Bengali support using `html2pdf.js`.
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd Exam-system-running-client-side
-   ```
+**3. User Dashboard**
 
-2. Install dependencies:
+- **Profile**: Image upload, personal details editing.
+- **Analytics**: Visualization of performance over time.
+- **Verification**: UI for email and profile verification steps.
+
+### 🛡️ Admin Interface
+
+**1. Dynamic Exam Creator**
+
+- **Step-by-Step Wizard**: Create exams in logical steps (Setup -> Subjects -> Questions).
+- **Rich Text Editor**: Integrated **React Quill** custom toolbar for:
+  - Text formatting
+  - **Mathematical/Special Symbols**
+  - Image embedding
+- **Dynamic Structure**: Add unlimited subjects and questions per subject.
+
+**2. Management & Monitoring**
+
+- **Invitation System**: Send email invites to onboard new admins/editors.
+- **Leaderboard Control**: View rankings with filters for "Cheat Score" (violation count).
+
+## 🛠️ Tech Stack & Libraries
+
+| Category    | Technology                   | Usage                       |
+| :---------- | :--------------------------- | :-------------------------- |
+| **Core**    | React 18, Vite               | UI Framework & Build Tool   |
+| **Styling** | Tailwind CSS, DaisyUI        | Responsive Design System    |
+| **State**   | React Query, Context API     | Server State & Global State |
+| **Routing** | React Router v6              | Navigation                  |
+| **Editor**  | React Quill                  | Rich Text Question Editing  |
+| **PDF**     | html2pdf.js, html2canvas-pro | Report Generation           |
+| **AI/ML**   | face-api.js                  | Webcam Proctoring           |
+| **Charts**  | Recharts                     | Analytics Visualization     |
+| **Icons**   | React Icons, Heroicons       | UI Elements                 |
+
+## 🚀 Installation & Setup
+
+1. **Install Dependencies**
+
    ```bash
    npm install
    ```
 
-3. Configure environment variables:
+2. **Environment Configuration**
+   Create a `.env` file:
+
+   ```env
+   VITE_BACKEND_URL=http://localhost:5000
+   ```
+
+3. **Development Server**
    ```bash
-   cp .env.example .env
+   npm start
    ```
-   
-   Edit `.env` and set your API URL:
-   ```
-   VITE_API_URL=http://localhost:5000/api
-   ```
+   Runs on `http://localhost:5173`.
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-The application will be available at `http://localhost:5173`
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint
-
-## Deployment to Vercel
-
-### Prerequisites
-- A Vercel account
-- Your backend API deployed and accessible
-
-### Steps
-
-1. **Connect Repository to Vercel**:
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click "Add New Project"
-   - Import your Git repository
-
-2. **Configure Environment Variables**:
-   - In your Vercel project settings, go to "Environment Variables"
-   - Add the following variable:
-     - **Name**: `VITE_API_URL`
-     - **Value**: Your production API URL (e.g., `https://api.yourdomain.com/api`)
-   - Make sure to add it for all environments (Production, Preview, Development)
-
-3. **Deploy**:
-   - Vercel will automatically detect the Vite configuration
-   - Click "Deploy"
-   - Your application will be live at `https://your-project.vercel.app`
-
-### Vercel Configuration
-
-The project includes a `vercel.json` file that:
-- Configures the build command and output directory
-- Sets up SPA routing (all routes redirect to index.html)
-
-### Post-Deployment
-
-After deployment:
-1. Verify the application loads correctly
-2. Test all routes and navigation
-3. Ensure API connectivity is working
-4. Check that authentication flows work properly
-
-## Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `VITE_API_URL` | Backend API base URL | Yes |
-
-## Project Structure
+## 📂 Key Directory Structure
 
 ```
 src/
-├── Pages/          # Application pages/routes
-├── components/     # Reusable components
-├── hooks/          # Custom React hooks
-├── services/       # API services
-├── utils/          # Utility functions
-├── Route.jsx       # Route configuration
-└── index.jsx       # Application entry point
+├── Pages/
+│   ├── Admin/              # Exam Creation Wizard, Dashboard
+│   ├── ExamRoom/           # LiveExamRoom (Proctoring logic), PracticeRoom
+│   ├── StudentDashboard/   # Analytics, PDF Review
+│   └── ...
+├── components/             # Reusable UI (WebcamPanel, QuestionDisplay)
+├── hooks/                  # Logic extraction
+│   ├── useWebcamMonitoring.js  # Face detection & violation logic
+│   ├── useFullscreen.js        # Screen security logic
+│   └── ...
+└── services/               # API calls (Axios)
 ```
 
-## Support
+## 📝 License
 
-For issues or questions, please open an issue in the repository.
+MIT License.
