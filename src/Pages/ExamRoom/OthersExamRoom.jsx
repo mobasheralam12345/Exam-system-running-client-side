@@ -371,6 +371,7 @@ const OthersExamRoom = () => {
       duration: durationInMinutes,
       tags: examData.tags || [],
       category: examCategory,
+      subjects: examData.subjects, // ✅ Include full subjects with questions for review
     };
 
     // ✅ Add conditional fields based on examType AND category

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import ExamHeader from "./components/ExamHeader";
 import QuestionDisplay from "./components/QuestionDisplay";
 import NavigationSidebar from "./components/NavigationSidebar";
@@ -11,6 +12,8 @@ import ExamCompletedScreen from "./screens/ExamCompletedScreen";
 import useExamTimer from "../../hooks/useExamTimer";
 import useExamMonitoring from "../../hooks/useExamMonitoring";
 import useFullscreen from "../../hooks/useFullscreen";
+import useWebcamMonitoring from "../../hooks/useWebcamMonitoring";
+import WebcamMonitoringPanel from "../../components/WebcamMonitoringPanel";
 
 const LiveExamRoom = () => {
   const location = useLocation();
@@ -28,6 +31,17 @@ const LiveExamRoom = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [verificationImages, setVerificationImages] = useState(null);
+  const [webcamMonitoringEnabled, setWebcamMonitoringEnabled] = useState(false);
+  
+  // Common violation counter - increments for both web focus and webcam violations
+  const [commonViolationCount, setCommonViolationCount] = useState(() => {
+    if (location.state?.examData?._id) {
+      const saved = localStorage.getItem(`exam_${location.state.examData._id}_commonViolations`);
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
 
   const { isFullscreen, setIsFullscreen, enterFullscreen } = useFullscreen();
 
@@ -37,6 +51,85 @@ const LiveExamRoom = () => {
 
   useEffect(() => {
     const passedExamData = location.state?.examData;
+
+    // Check registration before allowing exam entry
+    const checkRegistration = async () => {
+      if (!passedExamData) return;
+
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please login to enter the exam",
+          confirmButtonText: "Go to Login",
+        }).then(() => {
+          navigate("/login");
+        });
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/liveExam/registration/${
+            passedExamData._id || passedExamData.id
+          }`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        // Check if verification is required
+        if (data.requiresVerification) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Verification Required",
+            html:
+              data.message ||
+              "Only verified users can access live exams. Please complete your verification first.",
+            confirmButtonText: "Go to Verification",
+            showCancelButton: true,
+            cancelButtonText: "Cancel",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/profile");
+            } else {
+              navigate("/live-exams");
+            }
+          });
+          return;
+        }
+
+        if (!data.success || !data.isRegistered) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Registration Required",
+            text: "You must register for this exam before entering. Please register first.",
+            confirmButtonText: "Go to Exams",
+          }).then(() => {
+            navigate("/live-exams");
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Check registration error:", error);
+        await Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error checking registration status. Please try again.",
+          confirmButtonText: "OK",
+        }).then(() => {
+          navigate("/live-exams");
+        });
+        return;
+      }
+    };
+
+    checkRegistration();
     if (passedExamData) {
       setExamData(passedExamData);
 
@@ -55,6 +148,9 @@ const LiveExamRoom = () => {
       const savedCurrentQuestion = localStorage.getItem(
         `exam_${passedExamData._id}_currentQuestion`
       );
+      const savedCommonViolations = localStorage.getItem(
+        `exam_${passedExamData._id}_commonViolations`
+      );
 
       if (savedAnswers) {
         setAnswers(JSON.parse(savedAnswers));
@@ -70,6 +166,9 @@ const LiveExamRoom = () => {
       }
       if (savedCurrentQuestion) {
         setCurrentQuestionIndex(parseInt(savedCurrentQuestion));
+      }
+      if (savedCommonViolations) {
+        setCommonViolationCount(parseInt(savedCommonViolations, 10));
       }
     } else {
       navigate("/live-exams");
@@ -95,6 +194,255 @@ const LiveExamRoom = () => {
     enterFullscreen,
     examData?._id
   );
+
+  // Get user info for webcam monitoring
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+  const userId = userInfo?.id;
+
+  // Callback for webcam violation reaching 10 seconds - increment common violation counter
+  const handleWebcamViolationReached = useCallback((violationType) => {
+    console.log(`🎥 Webcam violation reached 10s: ${violationType} - Incrementing common violation counter`);
+    setCommonViolationCount((prev) => prev + 1);
+  }, []);
+
+  // Webcam monitoring hook
+  const {
+    videoRef,
+    canvasRef,
+    cameraActive,
+    startCamera,
+    stopCamera,
+    faceDetected,
+    headPosition,
+    detectionErrors,
+    violationStatus,
+    violationLogs,
+    cameraError,
+    modelsLoaded,
+    logKeyboardViolation,
+    clearViolationLogs,
+  } = useWebcamMonitoring(
+    examStarted,
+    examCompleted,
+    userId,
+    verificationImages,
+    handleWebcamViolationReached
+  );
+
+  // Track previous violationCounts.total to detect increases (web focus violations)
+  const prevViolationCountsTotalRef = useRef(0);
+
+  // Reset ref when exam starts
+  useEffect(() => {
+    if (examStarted && !examCompleted) {
+      prevViolationCountsTotalRef.current = violationCounts.total;
+    }
+  }, [examStarted]);
+
+  // Increment common violation counter when web focus violations occur
+  useEffect(() => {
+    if (!examStarted || examCompleted) {
+      return;
+    }
+
+    const currentTotal = violationCounts.total;
+    const prevTotal = prevViolationCountsTotalRef.current;
+
+    if (currentTotal > prevTotal) {
+      // Web focus violation occurred - increment common counter
+      const increment = currentTotal - prevTotal;
+      console.log(`🌐 Web focus violation detected - Incrementing common violation counter by ${increment}`);
+      setCommonViolationCount((prev) => prev + increment);
+      prevViolationCountsTotalRef.current = currentTotal;
+    }
+  }, [violationCounts.total, examStarted, examCompleted]);
+
+  // Persist common violation count to localStorage
+  useEffect(() => {
+    if (examData && examStarted && !examCompleted) {
+      localStorage.setItem(
+        getStorageKey("commonViolations"),
+        commonViolationCount.toString()
+      );
+    }
+  }, [commonViolationCount, examData, examStarted, examCompleted]);
+
+  // Ban user and auto-submit if common violation count reaches 10
+  useEffect(() => {
+    if (
+      examStarted &&
+      !examCompleted &&
+      commonViolationCount >= 10 &&
+      examData
+    ) {
+      console.log(
+        `🚫 User banned: Common violation count reached ${commonViolationCount} (limit: 10)`
+      );
+      
+      // Show warning before auto-submitting
+      Swal.fire({
+        icon: "error",
+        title: "You Have Been Banned",
+        html: `
+          <p style="font-size: 16px; margin-bottom: 10px;">
+            <strong>Violation Limit Exceeded</strong>
+          </p>
+          <p style="font-size: 14px;">
+            You have exceeded the maximum violation limit (10 violations).<br/>
+            Your exam will be automatically submitted.
+          </p>
+          <p style="font-size: 12px; color: #666; margin-top: 15px;">
+            Total Violations: <strong>${commonViolationCount}</strong>
+          </p>
+        `,
+        confirmButtonText: "OK",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showCancelButton: false,
+        confirmButtonColor: "#dc2626",
+      }).then(() => {
+        // Auto-submit after user acknowledges the warning
+        // Note: handleAutoSubmit is stable enough as it checks examCompleted internally
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        handleAutoSubmit("expelled", true, "Exceeded maximum violation limit (10 violations)");
+      });
+    }
+  }, [commonViolationCount, examStarted, examCompleted, examData]);
+
+  // Fetch verification images when exam starts
+  useEffect(() => {
+    const fetchVerificationImages = async () => {
+      if (!examStarted || examCompleted) return;
+
+      const token = localStorage.getItem("userToken");
+      if (!token) return;
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/profile/verification-status`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data?.verificationImages) {
+            console.log(
+              "✅ Verification images fetched successfully:",
+              Object.keys(data.data.verificationImages).filter(
+                (k) => data.data.verificationImages[k]
+              )
+            );
+            console.log(
+              "📊 Verification images data:",
+              data.data.verificationImages
+            );
+            setVerificationImages(data.data.verificationImages);
+            setWebcamMonitoringEnabled(true);
+          } else {
+            console.warn("❌ No verification images found for user");
+            console.log("Response data:", data);
+            setWebcamMonitoringEnabled(false);
+          }
+        } else {
+          console.error(
+            "❌ Failed to fetch verification images. Status:",
+            response.status
+          );
+          setWebcamMonitoringEnabled(false);
+        }
+      } catch (error) {
+        console.error("Error fetching verification images:", error);
+        setWebcamMonitoringEnabled(false);
+      }
+    };
+
+    if (examStarted && !examCompleted) {
+      fetchVerificationImages();
+    }
+  }, [examStarted, examCompleted]);
+
+  // Debug: Log verification images when they change
+  useEffect(() => {
+    if (verificationImages) {
+      console.log("📸 verificationImages state updated:", verificationImages);
+      const availableAngles = Object.keys(verificationImages).filter(
+        (k) => verificationImages[k]
+      );
+      console.log("📸 Available verification angles:", availableAngles);
+    } else {
+      console.log("📸 verificationImages is null or undefined");
+    }
+  }, [verificationImages]);
+
+  // Start camera when exam starts and monitoring is enabled
+  useEffect(() => {
+    if (
+      examStarted &&
+      !examCompleted &&
+      webcamMonitoringEnabled &&
+      modelsLoaded
+    ) {
+      startCamera();
+    } else if (examCompleted || !examStarted) {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [
+    examStarted,
+    examCompleted,
+    webcamMonitoringEnabled,
+    modelsLoaded,
+    startCamera,
+    stopCamera,
+  ]);
+
+  // Log webcam violations to backend
+  useEffect(() => {
+    const logViolationsToBackend = async () => {
+      if (violationLogs.length === 0 || !examData || !userId) return;
+
+      const token = localStorage.getItem("userToken");
+      if (!token) return;
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/liveExam/webcam-violation`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              examId: examData._id,
+              userId: userId,
+              violations: violationLogs,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          console.log("Webcam violations logged successfully");
+          clearViolationLogs();
+        } else {
+          console.error("Failed to log webcam violations");
+        }
+      } catch (error) {
+        console.error("Error logging webcam violations:", error);
+      }
+    };
+
+    if (violationLogs.length > 0) {
+      logViolationsToBackend();
+    }
+  }, [violationLogs, examData, userId, clearViolationLogs]);
 
   useEffect(() => {
     if (examData && examStarted && !examCompleted) {
@@ -147,6 +495,7 @@ const LiveExamRoom = () => {
       localStorage.removeItem(getStorageKey("currentSubject"));
       localStorage.removeItem(getStorageKey("currentQuestion"));
       localStorage.removeItem(`exam_${examData._id}_violations`);
+      localStorage.removeItem(getStorageKey("commonViolations"));
     }
   };
 
@@ -256,7 +605,7 @@ const LiveExamRoom = () => {
   };
 
   // ✅ UPDATED: handleAutoSubmit with calculations and proper structure
-  async function handleAutoSubmit(reason) {
+  async function handleAutoSubmit(reason, isBanned = false, banReason = null) {
     if (examCompleted) return;
 
     // Get user data from localStorage
@@ -267,8 +616,14 @@ const LiveExamRoom = () => {
 
     // If userId is missing, alert and stop
     if (!userId || !username) {
-      alert("User not logged in. Please login again.");
-      navigate("/login");
+      await Swal.fire({
+        icon: "warning",
+        title: "Session Expired",
+        text: "User not logged in. Please login again.",
+        confirmButtonText: "Go to Login",
+      }).then(() => {
+        navigate("/login");
+      });
       return;
     }
 
@@ -336,6 +691,11 @@ const LiveExamRoom = () => {
         windowBlur: violationCounts.windowBlur,
       },
 
+      commonViolationCount: commonViolationCount,
+
+      isBanned: isBanned,
+      banReason: banReason,
+
       completionReason: reason,
 
       metadata: {
@@ -376,12 +736,22 @@ const LiveExamRoom = () => {
       } else {
         const error = await response.json();
         console.error("❌ Backend error:", error);
-        alert(`Submission failed: ${error.message}`);
+        await Swal.fire({
+          icon: "error",
+          title: "Submission Failed",
+          text: error.message || "Failed to submit exam. Please try again.",
+          confirmButtonText: "OK",
+        });
         await exitFullscreen();
       }
     } catch (error) {
       console.error("❌ Network error:", error);
-      alert("Network error. Please try again.");
+      await Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Network error. Please try again.",
+        confirmButtonText: "OK",
+      });
       await exitFullscreen();
     } finally {
       setSubmissionLoading(false);
@@ -601,6 +971,7 @@ const LiveExamRoom = () => {
               currentQuestionIndex={currentQuestionIndex}
               onSubmit={handleSubmitClick}
               showSubmit={true}
+              commonViolationCount={commonViolationCount}
             />
           </div>
 
@@ -620,6 +991,27 @@ const LiveExamRoom = () => {
             reviewMarked={reviewMarked}
             isLastQuestion={isLastQuestion()}
           />
+
+          {/* Webcam Monitoring Panel */}
+          {webcamMonitoringEnabled && examStarted && !examCompleted && (
+            <div className="fixed bottom-4 right-4 z-30">
+              <WebcamMonitoringPanel
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                cameraActive={cameraActive}
+                startCamera={startCamera}
+                stopCamera={stopCamera}
+                faceDetected={faceDetected}
+                headPosition={headPosition}
+                detectionErrors={detectionErrors}
+                violationStatus={violationStatus}
+                violationLogs={violationLogs}
+                cameraError={cameraError}
+                modelsLoaded={modelsLoaded}
+                commonViolationCount={commonViolationCount}
+              />
+            </div>
+          )}
         </div>
 
         {showViolationWarning && (

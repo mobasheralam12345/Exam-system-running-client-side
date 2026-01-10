@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Add this import
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import ExamRegistrationModal from "../../components/ExamRegistrationModal";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const FilterDrawer = ({
@@ -328,6 +330,8 @@ const LiveExamsPage = () => {
   const [liveExams, setLiveExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [registrationModal, setRegistrationModal] = useState({ isOpen: false, exam: null });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Only BCS, HSC, Bank
   const categories = [
@@ -377,12 +381,33 @@ const LiveExamsPage = () => {
     }
   }, [selectedCategory]);
 
+  // Check authentication status
+  useEffect(() => {
+    const token = localStorage.getItem("userToken");
+    setIsAuthenticated(!!token);
+  }, []);
+
   // Fetch live exams from API
   useEffect(() => {
     const fetchLiveExams = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${BACKEND_URL}/liveExam/active`);
+        
+        // Get authentication token if available
+        const token = localStorage.getItem("userToken");
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        
+        // Add Authorization header if token exists
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(`${BACKEND_URL}/liveExam/active`, {
+          headers,
+        });
+        
         if (!response.ok) {
           throw new Error("Failed to fetch live exams");
         }
@@ -407,6 +432,165 @@ const LiveExamsPage = () => {
 
     fetchLiveExams();
   }, []);
+
+  // Handle exam registration
+  const handleRegister = async () => {
+    const exam = registrationModal.exam;
+    if (!exam) return;
+
+    try {
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please login to register for exams",
+          confirmButtonText: "Go to Login",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/login");
+          }
+        });
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/liveExam/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ examId: exam._id || exam.id }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the exam's registration status in the list
+        setLiveExams((prevExams) =>
+          prevExams.map((e) =>
+            (e._id || e.id) === (exam._id || exam.id)
+              ? { ...e, isRegistered: true }
+              : e
+          )
+        );
+        await Swal.fire({
+          icon: "success",
+          title: "Registration Successful!",
+          text: "You have successfully registered for the exam",
+          confirmButtonText: "OK",
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      } else {
+        // Check if verification is required
+        if (data.requiresVerification) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Verification Required",
+            html: data.message || "Only verified users can register for live exams. Please complete your verification first.",
+            confirmButtonText: "Go to Verification",
+            showCancelButton: true,
+            cancelButtonText: "Cancel",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/profile");
+            }
+          });
+        } else {
+          await Swal.fire({
+            icon: "error",
+            title: "Registration Failed",
+            text: data.message || "Failed to register for exam",
+            confirmButtonText: "OK",
+          });
+        }
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
+    }
+  };
+
+  // Check registration before entering exam
+  const checkRegistrationBeforeEnter = async (exam) => {
+    const token = localStorage.getItem("userToken");
+    if (!token) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "Please login to enter the exam",
+        confirmButtonText: "Go to Login",
+        showCancelButton: true,
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/login");
+        }
+      });
+      return false;
+    }
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/liveExam/registration/${exam._id || exam.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      // Check if verification is required
+      if (data.requiresVerification) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Verification Required",
+          html: data.message || "Only verified users can access live exams. Please complete your verification first.",
+          confirmButtonText: "Go to Verification",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/profile");
+          }
+        });
+        return false;
+      }
+
+      if (!data.success || !data.isRegistered) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Registration Required",
+          text: "You must register for this exam before entering. Please register first.",
+          confirmButtonText: "Register Now",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            setRegistrationModal({ isOpen: true, exam });
+          }
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Check registration error:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error checking registration status. Please try again.",
+        confirmButtonText: "OK",
+      });
+      return false;
+    }
+  };
 
   // Update current time every second
   useEffect(() => {
@@ -574,16 +758,69 @@ const LiveExamsPage = () => {
     const examStatus = getExamStatus(exam.startTime, exam.endTime);
     const categoryConfig = getCategoryConfig(exam.examType);
 
-    const handleSetReminder = (e) => {
+    const handleSetReminder = async (e) => {
       e.preventDefault();
-      alert(`Reminder set for: ${exam.title}`);
+      await Swal.fire({
+        icon: "success",
+        title: "Reminder Set!",
+        text: `Reminder has been set for: ${exam.title}`,
+        confirmButtonText: "OK",
+        timer: 3000,
+        timerProgressBar: true,
+      });
     };
 
-    // Updated handleEnterExam function
-    const handleEnterExam = (e) => {
+    // Updated handleEnterExam function with registration check
+    const handleEnterExam = async (e) => {
       e.preventDefault();
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please login to enter the exam",
+          confirmButtonText: "Go to Login",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/login");
+          }
+        });
+        return;
+      }
+
+      // Check registration before entering
+      const isRegistered = await checkRegistrationBeforeEnter(exam);
+      if (!isRegistered) {
+        return; // Registration modal will be shown by checkRegistrationBeforeEnter
+      }
+
       // Navigate to /exam/room/live with exam data
       navigate("/exam/live", { state: { examData: exam } });
+    };
+
+    const handleOpenRegistration = async (e) => {
+      e.preventDefault();
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please login to register for exams",
+          confirmButtonText: "Go to Login",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/login");
+          }
+        });
+        return;
+      }
+      setRegistrationModal({ isOpen: true, exam });
     };
 
     return (
@@ -619,6 +856,11 @@ const LiveExamsPage = () => {
               {exam.isPremium && (
                 <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
                   ⭐ Premium
+                </span>
+              )}
+              {isAuthenticated && exam.isRegistered && (
+                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                  ✓ Registered
                 </span>
               )}
             </div>
@@ -746,39 +988,58 @@ const LiveExamsPage = () => {
             </div>
           </div>
 
-          {/* Action Button */}
-          <div className="mt-auto">
-            {examStatus.status === "upcoming" &&
-            examStatus.isMoreThanOneHour ? (
-              <button
-                onClick={handleSetReminder}
-                className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
-              >
-                🔔 Set Reminder
-              </button>
-            ) : (
-              <button
-                onClick={
-                  examStatus.status === "running" ? handleEnterExam : undefined
-                }
-                className={`w-full bg-gradient-to-r ${
-                  examStatus.buttonColor
-                } text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 ${
-                  examStatus.status === "ended"
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-                }`}
-                disabled={examStatus.status === "ended"}
-              >
-                {examStatus.status === "running"
-                  ? "🚀 Enter Exam"
-                  : examStatus.status === "ended"
-                  ? "⏰ Exam Ended"
-                  : `⏳ Starts in ${formatCountdown(
+          {/* Action Buttons */}
+          <div className="mt-auto space-y-2">
+            {examStatus.status === "upcoming" ? (
+              <>
+                {/* Countdown/Reminder Button */}
+                {examStatus.isMoreThanOneHour ? (
+                  <button
+                    onClick={handleSetReminder}
+                    className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+                  >
+                    🔔 Set Reminder
+                  </button>
+                ) : (
+                  <div className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl text-center`}>
+                    ⏳ Starts in {formatCountdown(
                       examStatus.hours,
                       examStatus.minutes,
                       examStatus.seconds
-                    )}`}
+                    )}
+                  </div>
+                )}
+                
+                {/* Registration Button - Only show for upcoming exams if not registered */}
+                {isAuthenticated && !exam.isRegistered && (
+                  <button
+                    onClick={handleOpenRegistration}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    📝 Register for Exam
+                  </button>
+                )}
+                
+                {/* Registered Badge */}
+                {isAuthenticated && exam.isRegistered && (
+                  <div className="w-full bg-green-100 text-green-800 font-semibold py-2 px-4 rounded-xl text-center text-sm">
+                    ✓ Registered
+                  </div>
+                )}
+              </>
+            ) : examStatus.status === "running" ? (
+              <button
+                onClick={handleEnterExam}
+                className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+              >
+                🚀 Enter Exam
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 text-white font-semibold py-3 px-4 rounded-xl opacity-50 cursor-not-allowed"
+              >
+                ⏰ Exam Ended
               </button>
             )}
           </div>
@@ -1028,6 +1289,14 @@ const LiveExamsPage = () => {
           onClose={() => setSelectedExamForSubjects(null)}
           subjects={selectedExamForSubjects?.subjects || []}
           examTitle={selectedExamForSubjects?.title || ""}
+        />
+
+        {/* Registration Modal */}
+        <ExamRegistrationModal
+          isOpen={registrationModal.isOpen}
+          onClose={() => setRegistrationModal({ isOpen: false, exam: null })}
+          exam={registrationModal.exam}
+          onRegister={handleRegister}
         />
       </div>
     </div>

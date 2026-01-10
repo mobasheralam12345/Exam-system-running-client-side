@@ -7,6 +7,8 @@ import Login from "./Pages/Login/Login";
 import Register from "./Pages/Register/Register";
 import BcsExam from "./Pages/BcsExam/BcsExam";
 import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
+import StudentExamReview from "./Pages/StudentDashboard/StudentExamReview";
+import StudentLeaderboard from "./Pages/StudentDashboard/StudentLeaderboard";
 import BcsSubjectWise from "./Pages/BcsExam/subjectWiseBCS";
 import HscExam from "../src/Pages/HscExam/HscExam";
 import HscSubjectWiseExam from "./Pages/HscExam/HscSubjectWiseExam";
@@ -26,6 +28,9 @@ import AdminManagement from "./Pages/Admin/AdminManagement";
 import AdminRegistration from "./Pages/Admin/AdminRegistration";
 import AdminLogin from "./Pages/Admin/AdminLogin";
 import AdminPrivateRoute from "./Pages/AdminPrivateRoute";
+import ExamHistory from "./Pages/Admin/ExamHistory";
+import ExamRanking from "./Pages/Admin/ExamRanking";
+import UserProfile from "./Pages/UserProfile";
 
 const router = createBrowserRouter([
   {
@@ -122,6 +127,10 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/user-profile",
+        element: <UserProfile />,
+      },
+      {
         path: "/admin",
         element: (
           <AdminPrivateRoute>
@@ -154,10 +163,42 @@ const router = createBrowserRouter([
         element: <AdminLogin></AdminLogin>,
       },
       {
+        path: "/admin/exam-history",
+        element: (
+          <AdminPrivateRoute>
+            <ExamHistory />
+          </AdminPrivateRoute>
+        ),
+      },
+      {
+        path: "/admin/exam-history/:examId/ranking",
+        element: (
+          <AdminPrivateRoute>
+            <ExamRanking />
+          </AdminPrivateRoute>
+        ),
+      },
+      {
         path: "/student/dashboard",
         element: (
           <PrivateRoute>
             <StudentDashboard />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/student/exam-review/:submissionId",
+        element: (
+          <PrivateRoute>
+            <StudentExamReview />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "/student/leaderboard/:examId",
+        element: (
+          <PrivateRoute>
+            <StudentLeaderboard />
           </PrivateRoute>
         ),
       },
