@@ -1,6 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar/Navbar";
-import Footer from "./Footer";
+import Footer from "./Footer/Footer";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -18,7 +18,7 @@ const MainLayout = () => {
   return (
     <div>
       {!shouldHide && <Navbar />}
-      <div className="min-h-screen mt-5">
+      <div className="min-h-screen">
         <Outlet />
       </div>
       {!shouldHide && <Footer />}
