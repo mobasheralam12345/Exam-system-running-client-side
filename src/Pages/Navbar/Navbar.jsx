@@ -130,7 +130,7 @@ const Navbar = () => {
   }, []);
 
   // Dropdown item component
-  const DropdownItem = ({ to, onClick, children }) => (
+  const DropdownItem = ({ to, onClick, children, icon }) => (
     <Link
       to={to}
       onClick={() => {
@@ -141,14 +141,15 @@ const Navbar = () => {
         setIsMobileMenuOpen(false);
         setUserDropdownOpen(false);
       }}
-      className="block px-5 py-3 text-sm md:text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 transform hover:translate-x-2"
+      className="group flex items-center gap-3 px-5 py-3.5 text-sm md:text-base font-semibold text-gray-700 dark:text-white hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-white transition-all duration-300 rounded-xl mx-2 my-1 hover:shadow-sm hover:scale-[1.02]"
     >
-      {children}
+      {icon && <span className="text-lg group-hover:scale-110 transition-transform duration-300">{icon}</span>}
+      <span>{children}</span>
     </Link>
   );
 
   // Mobile nav item component
-  const MobileNavItem = ({ to, onClick, children }) => (
+  const MobileNavItem = ({ to, onClick, children, icon }) => (
     <NavLink
       to={to}
       onClick={() => {
@@ -156,57 +157,78 @@ const Navbar = () => {
         onClick?.();
       }}
       className={({ isActive }) =>
-        `block w-full px-5 py-3 text-left text-base md:text-lg font-semibold ${
+        `flex items-center gap-3 w-full px-6 py-4 text-left text-base md:text-lg font-semibold rounded-2xl transition-all duration-300 ${
           isActive
-            ? "bg-blue-600 text-white"
-            : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20"
+            : "text-gray-700 dark:text-white hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-white hover:shadow-sm"
         }`
       }
     >
-      {children}
+      {icon && <span className="text-xl">{icon}</span>}
+      <span>{children}</span>
     </NavLink>
   );
 
   return (
     <>
-      <div className="h-20" />
-      <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-8xl mx-auto px-4">
+      <div className="h-24" />
+      <nav className="bg-white/95 dark:bg-black/95 backdrop-blur-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/50 border-b border-slate-200/60 dark:border-gray-800 fixed top-0 left-0 right-0 z-50">
+        {/* Gradient overlay for extra depth */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-50/20 via-transparent to-slate-50/20 dark:from-transparent dark:via-transparent dark:to-transparent pointer-events-none" />
+        
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex items-center justify-between h-24">
             {/* Logo */}
             <div className="flex-shrink-0 w-1/4">
               <Link
                 to="/"
-                className="text-2xl sm:text-2xl md:text-2xl lg:text-3xl xl:text-4xl font-extrabold transition-all duration-300 hover:scale-[1.02]"
+                className="group flex items-center gap-3 transition-all duration-300 hover:scale-105"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  ExamDesk BD
-                </span>
+                <div className="relative w-12 h-12 lg:w-14 lg:h-14">
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-500 dark:to-indigo-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-opacity duration-300" />
+                  {/* Icon */}
+                  <div className="relative w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-500 dark:to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-all duration-300">
+                    <span className="text-white text-2xl lg:text-3xl font-black tracking-tight">E</span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent tracking-tight leading-none">
+                    ExamDesk
+                  </span>
+                </div>
               </Link>
             </div>
 
             {/* Desktop Navigation - Center */}
             <div className="hidden lg:flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2">
                 {/* Live Exams */}
                 <NavLink
                   to="/LiveExams"
                   className={({ isActive }) =>
-                    `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap ${
+                    `relative group rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap overflow-hidden ${
                       isActive
-                        ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
-                        : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/30"
+                        : "text-blue-600 dark:text-white hover:text-white dark:hover:text-blue-400 hover:shadow-md hover:shadow-blue-500/20"
                     }`
                   }
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Live Exams
-                  </div>
+                  {({ isActive }) => (
+                    <>
+                      {!isActive && (
+                        <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-2xl" />
+                      )}
+                      <div className="flex items-center gap-2 relative z-10">
+                        <span className="flex h-2.5 w-2.5 relative">
+                          <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-red-400 opacity-75" />
+                          <span className="relative rounded-full h-2.5 w-2.5 bg-red-500" />
+                        </span>
+                        <span className="font-extrabold tracking-tight">Live Exams</span>
+                      </div>
+                    </>
+                  )}
                 </NavLink>
 
                 {/* BCS Exam Dropdown */}
@@ -219,41 +241,48 @@ const Navbar = () => {
                   <NavLink
                     to="/bcs/all-questions"
                     className={({ isActive }) =>
-                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
+                      `relative rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 overflow-hidden ${
                         isActive
-                          ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
-                          : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/30"
+                          : "text-blue-600 dark:text-white hover:text-white hover:shadow-md hover:shadow-blue-500/20"
                       }`
                     }
                   >
-                    BCS Exam
-                    <svg
-                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    {({ isActive }) => (
+                      <>
+                        {!isActive && (
+                          <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-2xl" />
+                        )}
+                        <span className="relative z-10 font-extrabold tracking-tight">BCS Exam</span>
+                        <svg
+                          className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180 relative z-10"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </>
+                    )}
                   </NavLink>
 
                   <div
-                    className={`absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top ${
+                    className={`absolute right-0 mt-3 w-64 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl shadow-xl border border-slate-200 dark:border-gray-700 transform transition-all duration-300 origin-top ${
                       showExamMenu
                         ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
                     }`}
                   >
                     <div className="py-2">
-                      <DropdownItem to="bcs/all-questions">
+                      <DropdownItem to="bcs/all-questions" icon="📚">
                         All Questions Exam
                       </DropdownItem>
-                      <DropdownItem to="bcs/subjectwise">
+                      <DropdownItem to="bcs/subjectwise" icon="📖">
                         Subject Wise Exam
                       </DropdownItem>
                     </div>
@@ -270,41 +299,48 @@ const Navbar = () => {
                   <NavLink
                     to="/hsc/all-questions"
                     className={({ isActive }) =>
-                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
+                      `relative rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 overflow-hidden ${
                         isActive
-                          ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
-                          : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/30"
+                          : "text-blue-600 dark:text-white hover:text-white hover:shadow-md hover:shadow-blue-500/20"
                       }`
                     }
                   >
-                    HSC Exam
-                    <svg
-                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    {({ isActive }) => (
+                      <>
+                        {!isActive && (
+                          <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-2xl" />
+                        )}
+                        <span className="relative z-10 font-extrabold tracking-tight">HSC Exam</span>
+                        <svg
+                          className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180 relative z-10"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </>
+                    )}
                   </NavLink>
 
                   <div
-                    className={`absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top ${
+                    className={`absolute right-0 mt-3 w-64 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl shadow-xl border border-slate-200 dark:border-gray-700 transform transition-all duration-300 origin-top ${
                       showHscMenu
                         ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
                     }`}
                   >
                     <div className="py-2">
-                      <DropdownItem to="hsc/all-questions">
+                      <DropdownItem to="hsc/all-questions" icon="📚">
                         All Questions Exam
                       </DropdownItem>
-                      <DropdownItem to="hsc/subjectwise">
+                      <DropdownItem to="hsc/subjectwise" icon="📖">
                         Subject Wise Exam
                       </DropdownItem>
                     </div>
@@ -321,41 +357,48 @@ const Navbar = () => {
                   <NavLink
                     to="/bank/all-questions"
                     className={({ isActive }) =>
-                      `rounded-lg text-xs lg:text-sm xl:text-base font-bold px-3 py-2 border-2 transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
+                      `relative rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 overflow-hidden ${
                         isActive
-                          ? "bg-emerald-600 text-white shadow-lg border-emerald-600"
-                          : "border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:shadow-md"
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/30"
+                          : "text-blue-600 dark:text-white hover:text-white hover:shadow-md hover:shadow-blue-500/20"
                       }`
                     }
                   >
-                    Bank Exam
-                    <svg
-                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    {({ isActive }) => (
+                      <>
+                        {!isActive && (
+                          <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-2xl" />
+                        )}
+                        <span className="relative z-10 font-extrabold tracking-tight">Bank Exam</span>
+                        <svg
+                          className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180 relative z-10"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </>
+                    )}
                   </NavLink>
 
                   <div
-                    className={`absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl transform transition-all duration-300 origin-top ${
+                    className={`absolute right-0 mt-3 w-64 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl shadow-xl border border-slate-200 dark:border-gray-700 transform transition-all duration-300 origin-top ${
                       showBankMenu
                         ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
                     }`}
                   >
                     <div className="py-2">
-                      <DropdownItem to="bank/all-questions">
+                      <DropdownItem to="bank/all-questions" icon="📚">
                         All Questions Exam
                       </DropdownItem>
-                      <DropdownItem to="bank/subjectwise">
+                      <DropdownItem to="bank/subjectwise" icon="📖">
                         Subject Wise Exam
                       </DropdownItem>
                     </div>
@@ -368,23 +411,23 @@ const Navbar = () => {
             <div className="flex lg:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-black hover:text-black hover:bg-gray-100 focus:outline-none transition-all duration-300 hover:scale-105"
+                className="relative inline-flex items-center justify-center p-3 rounded-2xl text-blue-600 dark:text-white hover:text-blue-700 dark:hover:text-blue-400 bg-blue-50 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700 focus:outline-none transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
               >
                 <span className="sr-only">Open main menu</span>
-                <div className="w-6 sm:w-7 h-6 sm:h-7 flex flex-col justify-between">
+                <div className="w-6 h-6 flex flex-col justify-center gap-1.5">
                   <span
-                    className={`block w-full h-0.5 bg-current transform transition-all duration-300 ${
-                      isMobileMenuOpen ? "rotate-45 translate-y-3" : ""
+                    className={`block w-full h-0.5 bg-current rounded-full transform transition-all duration-300 ${
+                      isMobileMenuOpen ? "rotate-45 translate-y-2" : ""
                     }`}
                   />
                   <span
-                    className={`block w-full h-0.5 bg-current transition-all duration-300 ${
-                      isMobileMenuOpen ? "opacity-0" : ""
+                    className={`block w-full h-0.5 bg-current rounded-full transition-all duration-300 ${
+                      isMobileMenuOpen ? "opacity-0 scale-0" : ""
                     }`}
                   />
                   <span
-                    className={`block w-full h-0.5 bg-current transform transition-all duration-300 ${
-                      isMobileMenuOpen ? "-rotate-45 -translate-y-3" : ""
+                    className={`block w-full h-0.5 bg-current rounded-full transform transition-all duration-300 ${
+                      isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
                     }`}
                   />
                 </div>
@@ -399,12 +442,14 @@ const Navbar = () => {
                   <div className="relative" ref={userDropdownRef}>
                     <button
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-50 p-2 text-gray-600 hover:text-blue-600 transition-all duration-300 hover:scale-105 hover:shadow-md"
+                      className="group relative flex items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-800 dark:to-gray-700 hover:from-blue-200 hover:to-indigo-200 dark:hover:from-gray-700 dark:hover:to-gray-600 p-3 text-blue-600 dark:text-white hover:text-blue-700 dark:hover:text-blue-400 transition-all duration-300 hover:scale-110 shadow-md hover:shadow-lg hover:shadow-blue-300/40 dark:hover:shadow-blue-500/20"
                       aria-haspopup="true"
                       aria-expanded={userDropdownOpen}
                     >
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-400 dark:from-blue-500 dark:to-indigo-500 rounded-2xl blur-md opacity-0 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300" />
                       <svg
-                        className="w-8 h-8"
+                        className="w-7 h-7 relative z-10"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -412,14 +457,14 @@ const Navbar = () => {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth="1.5"
+                          strokeWidth="2.5"
                           d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
                     </button>
                     {userDropdownOpen && (
                       <div
-                        className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-xl origin-top z-50"
+                        className="absolute right-0 mt-3 w-56 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl shadow-xl border border-slate-200 dark:border-gray-700 origin-top z-50 animate-in fade-in slide-in-from-top-2 duration-300"
                         role="menu"
                         aria-orientation="vertical"
                       >
@@ -427,7 +472,7 @@ const Navbar = () => {
                           <Link
                             to="/student/dashboard"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                            className="flex items-center gap-3 px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-300 mx-2 rounded-xl hover:shadow-sm hover:scale-[1.02]"
                             role="menuitem"
                           >
                             <svg
@@ -448,7 +493,7 @@ const Navbar = () => {
                           <Link
                             to="/profile"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                            className="flex items-center gap-3 px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-300 mx-2 rounded-xl hover:shadow-sm hover:scale-[1.02]"
                             role="menuitem"
                           >
                             <svg
@@ -472,15 +517,17 @@ const Navbar = () => {
                   </div>
                   <button
                     onClick={handleLogOut}
-                    className="px-5 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg hover:shadow-xl hover:scale-105 transition"
+                    className="group relative px-6 py-3 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-2xl font-bold hover:from-rose-600 hover:to-rose-700 shadow-md hover:shadow-lg hover:shadow-rose-500/30 hover:scale-105 transition-all duration-300 overflow-hidden"
                   >
-                    Log Out
+                    <span className="relative z-10 font-extrabold tracking-tight">Log Out</span>
+                    <span className="absolute inset-0 bg-gradient-to-r from-rose-600 to-rose-700 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                   </button>
                 </>
               ) : (
                 <Link to="/login">
-                  <button className="px-5 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg hover:shadow-xl hover:scale-105 transition">
-                    Login
+                  <button className="group relative px-7 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 overflow-hidden">
+                    <span className="relative z-10 font-extrabold tracking-tight">Login</span>
+                    <span className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-700 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                   </button>
                 </Link>
               )}
@@ -491,151 +538,204 @@ const Navbar = () => {
 
       {/* Mobile Navigation Menu */}
       <div
-        className={`lg:hidden transition-all duration-300 ease-in-out ${
+        className={`lg:hidden fixed inset-0 z-40 transition-all duration-500 ${
           isMobileMenuOpen
-            ? "max-h-screen opacity-100 visible"
-            : "max-h-0 opacity-0 invisible"
+            ? "visible opacity-100"
+            : "invisible opacity-0"
         }`}
       >
-        <div className="px-2 pt-2 pb-3 space-y-1 bg-white shadow-lg">
-          {/* Live Exams */}
-          <MobileNavItem to="/LiveExams">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              Live Exams
-            </div>
-          </MobileNavItem>
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-white/40 dark:bg-black/60 backdrop-blur-xl transition-all duration-500 ${
+            isMobileMenuOpen ? "opacity-100" : "opacity-0"
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
 
-          {/* Mobile BCS Menu */}
-          <div className="space-y-1">
+        {/* Menu Content */}
+        <div
+          className={`absolute top-0 right-0 bottom-0 w-full sm:w-96 bg-white dark:bg-gradient-to-br dark:from-black dark:via-gray-900 dark:to-black backdrop-blur-2xl shadow-2xl transform transition-all duration-500 ${
+            isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-800 bg-white/50 dark:bg-black/50">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+              Menu
+            </h2>
             <button
-              onClick={() => setShowExamMenu(!showExamMenu)}
-              className="w-full text-left px-5 py-4 text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 rounded-xl bg-blue-100 dark:bg-gray-800 text-blue-600 dark:text-white hover:bg-blue-200 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-110 hover:rotate-90"
             >
-              <span>BCS Exam</span>
-              <svg
-                className={`w-5 h-5 transition-transform duration-200 ${
-                  showExamMenu ? "rotate-180" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div
-              className={`pl-4 space-y-1 ${showExamMenu ? "block" : "hidden"}`}
-            >
-              <MobileNavItem to="/bcs/all-questions">
-                All Questions Exam
-              </MobileNavItem>
-              <MobileNavItem to="/bcs/subjectwise">
-                Subject Wise Exam
-              </MobileNavItem>
-            </div>
           </div>
 
-          {/* Mobile HSC Menu */}
-          <div className="space-y-1">
-            <button
-              onClick={() => setShowHscMenu(!showHscMenu)}
-              className="w-full text-left px-5 py-4 text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
-            >
-              <span>HSC Exam</span>
-              <svg
-                className={`w-5 h-5 transition-transform duration-200 ${
-                  showHscMenu ? "rotate-180" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          {/* Menu Items */}
+          <div className="px-4 pt-4 pb-6 space-y-2 max-h-[calc(100vh-8rem)] overflow-y-auto">
+            {/* Live Exams */}
+            <MobileNavItem to="/LiveExams" icon="🔴">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-red-400 opacity-75" />
+                  <span className="relative rounded-full h-2.5 w-2.5 bg-red-500" />
+                </span>
+                Live Exams
+              </div>
+            </MobileNavItem>
+
+            {/* Mobile BCS Menu */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setShowExamMenu(!showExamMenu)}
+                className="w-full text-left px-6 py-4 text-base font-semibold text-slate-800 dark:text-white hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-white flex items-center justify-between rounded-2xl transition-all duration-300 hover:shadow-sm"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            <div
-              className={`pl-4 space-y-1 ${showHscMenu ? "block" : "hidden"}`}
-            >
-              <MobileNavItem to="/hsc/all-questions">
-                All Questions Exam
-              </MobileNavItem>
-              <MobileNavItem to="/hsc/subjectwise">
-                Subject Wise Exam
-              </MobileNavItem>
-            </div>
-          </div>
-
-          {/* Mobile Bank Menu */}
-          <div className="space-y-1">
-            <button
-              onClick={() => setShowBankMenu(!showBankMenu)}
-              className="w-full text-left px-5 py-4 text-lg font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between"
-            >
-              <span>Bank Exam</span>
-              <svg
-                className={`w-5 h-5 transition-transform duration-200 ${
-                  showBankMenu ? "rotate-180" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            <div
-              className={`pl-4 space-y-1 ${showBankMenu ? "block" : "hidden"}`}
-            >
-              <MobileNavItem to="/bank/all-questions">
-                All Questions Exam
-              </MobileNavItem>
-              <MobileNavItem to="/bank/subjectwise">
-                Subject Wise Exam
-              </MobileNavItem>
-            </div>
-          </div>
-
-          {isAuthenticated && (
-            <>
-              <MobileNavItem to="/dashboard">Dashboard</MobileNavItem>
-              <MobileNavItem to="/profile">Profile</MobileNavItem>
-            </>
-          )}
-
-          {/* Mobile Auth Button */}
-          {isAuthenticated ? (
-            <button
-              onClick={handleLogOut}
-              className="w-full px-5 py-4 text-base font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Log Out
-            </button>
-          ) : (
-            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <button className="w-full px-5 py-4 text-base font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                Login
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">📚</span>
+                  <span>BCS Exam</span>
+                </span>
+                <svg
+                  className={`w-5 h-5 transition-transform duration-300 ${
+                    showExamMenu ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
               </button>
-            </Link>
-          )}
+              <div
+                className={`pl-6 space-y-1 overflow-hidden transition-all duration-300 ${
+                  showExamMenu ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <MobileNavItem to="/bcs/all-questions" icon="📄">
+                  All Questions Exam
+                </MobileNavItem>
+                <MobileNavItem to="/bcs/subjectwise" icon="📖">
+                  Subject Wise Exam
+                </MobileNavItem>
+              </div>
+            </div>
+
+            {/* Mobile HSC Menu */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setShowHscMenu(!showHscMenu)}
+                className="w-full text-left px-6 py-4 text-base font-semibold text-slate-800 dark:text-white hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-white flex items-center justify-between rounded-2xl transition-all duration-300 hover:shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">🎓</span>
+                  <span>HSC Exam</span>
+                </span>
+                <svg
+                  className={`w-5 h-5 transition-transform duration-300 ${
+                    showHscMenu ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <div
+                className={`pl-6 space-y-1 overflow-hidden transition-all duration-300 ${
+                  showHscMenu ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <MobileNavItem to="/hsc/all-questions" icon="📄">
+                  All Questions Exam
+                </MobileNavItem>
+                <MobileNavItem to="/hsc/subjectwise" icon="📖">
+                  Subject Wise Exam
+                </MobileNavItem>
+              </div>
+            </div>
+
+            {/* Mobile Bank Menu */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setShowBankMenu(!showBankMenu)}
+                className="w-full text-left px-6 py-4 text-base font-semibold text-slate-800 dark:text-white hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-white flex items-center justify-between rounded-2xl transition-all duration-300 hover:shadow-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">🏦</span>
+                  <span>Bank Exam</span>
+                </span>
+                <svg
+                  className={`w-5 h-5 transition-transform duration-300 ${
+                    showBankMenu ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <div
+                className={`pl-6 space-y-1 overflow-hidden transition-all duration-300 ${
+                  showBankMenu ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <MobileNavItem to="/bank/all-questions" icon="📄">
+                  All Questions Exam
+                </MobileNavItem>
+                <MobileNavItem to="/bank/subjectwise" icon="📖">
+                  Subject Wise Exam
+                </MobileNavItem>
+              </div>
+            </div>
+
+            {isAuthenticated && (
+              <>
+                <div className="h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-gray-700 to-transparent my-4" />
+                <MobileNavItem to="/student/dashboard" icon="🏠">
+                  Dashboard
+                </MobileNavItem>
+                <MobileNavItem to="/profile" icon="👤">
+                  Profile
+                </MobileNavItem>
+              </>
+            )}
+
+            {/* Mobile Auth Button */}
+            <div className="pt-4">
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogOut}
+                  className="w-full px-6 py-4 text-base font-bold text-white bg-gradient-to-r from-rose-500 to-rose-600 rounded-2xl hover:from-rose-600 hover:to-rose-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02]"
+                >
+                  Log Out
+                </button>
+              ) : (
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <button className="w-full px-6 py-4 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02]">
+                    Login
+                  </button>
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </>
