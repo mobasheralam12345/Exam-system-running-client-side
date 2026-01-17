@@ -1,7 +1,17 @@
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, GraduationCap, Building2, Radio, ChevronDown, User, LogOut, Menu, X } from "lucide-react";
+import {
+  BookOpen,
+  GraduationCap,
+  Building2,
+  Radio,
+  ChevronDown,
+  User,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -9,7 +19,7 @@ const Navbar = () => {
 
   // Authentication state based on presence of userToken
   const [isAuthenticated, setIsAuthenticated] = useState(
-    !!localStorage.getItem("userToken")
+    !!localStorage.getItem("userToken"),
   );
 
   const [showExamMenu, setShowExamMenu] = useState(false);
@@ -145,16 +155,19 @@ const Navbar = () => {
       }}
       className="group flex items-center gap-3 px-5 py-3.5 text-sm md:text-base font-medium text-muted-foreground hover:bg-muted hover:text-accent transition-all duration-300 rounded-xl mx-2 my-1 hover:shadow-sm hover:scale-[1.02]"
     >
-      {IconComponent && <IconComponent className="w-4 h-4 text-accent group-hover:scale-110 transition-transform duration-300" />}
+      {IconComponent && (
+        <IconComponent className="w-4 h-4 text-accent group-hover:scale-110 transition-transform duration-300" />
+      )}
       <span>{children}</span>
     </Link>
   );
 
   // Mobile nav item component - using Link instead of NavLink to ensure proper navigation
   const MobileNavItem = ({ to, icon, children }) => (
-    <Link
-      to={to}
+    <button
+      type="button"
       onClick={() => {
+        navigate(to);
         setShowExamMenu(false);
         setShowHscMenu(false);
         setShowBankMenu(false);
@@ -164,7 +177,7 @@ const Navbar = () => {
     >
       {icon && <span className="text-lg">{icon}</span>}
       <span>{children}</span>
-    </Link>
+    </button>
   );
 
   return (
@@ -173,7 +186,7 @@ const Navbar = () => {
       <nav className="bg-card/95 backdrop-blur-2xl shadow-lg shadow-slate-200/50 border-b border-border fixed top-0 left-0 right-0 z-50">
         {/* Gradient overlay for extra depth */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-50/20 via-transparent to-slate-50/20 pointer-events-none" />
-        
+
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex items-center justify-between h-24">
             {/* Logo */}
@@ -188,7 +201,9 @@ const Navbar = () => {
                   <div className="absolute inset-0 bg-accent rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-opacity duration-300" />
                   {/* Icon */}
                   <div className="relative w-full h-full bg-accent rounded-2xl flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-all duration-300">
-                    <span className="text-white text-2xl lg:text-3xl font-black tracking-tight">E</span>
+                    <span className="text-white text-2xl lg:text-3xl font-black tracking-tight">
+                      E
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-col">
@@ -206,7 +221,8 @@ const Navbar = () => {
                 <NavLink
                   to="/LiveExams"
                   className={({ isActive }) => {
-                    const isLiveExamsActive = isActive || location.pathname.startsWith('/LiveExams');
+                    const isLiveExamsActive =
+                      isActive || location.pathname.startsWith("/LiveExams");
                     return `relative group rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
                       isLiveExamsActive
                         ? "bg-emerald-50 text-accent shadow-md shadow-accent/20"
@@ -218,7 +234,9 @@ const Navbar = () => {
                     <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-red-400 opacity-75" />
                     <span className="relative rounded-full h-2.5 w-2.5 bg-red-500" />
                   </span>
-                  <span className="font-extrabold tracking-tight">Live Exams</span>
+                  <span className="font-extrabold tracking-tight">
+                    Live Exams
+                  </span>
                 </NavLink>
 
                 {/* BCS Exam Dropdown */}
@@ -231,7 +249,8 @@ const Navbar = () => {
                   <NavLink
                     to="/bcs/all-questions"
                     className={({ isActive }) => {
-                      const isBcsActive = isActive || location.pathname.startsWith('/bcs');
+                      const isBcsActive =
+                        isActive || location.pathname.startsWith("/bcs");
                       return `relative rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
                         isBcsActive
                           ? "bg-emerald-50 text-accent shadow-md shadow-accent/20"
@@ -240,7 +259,9 @@ const Navbar = () => {
                     }}
                   >
                     <BookOpen className="w-4 h-4" />
-                    <span className="font-extrabold tracking-tight">BCS Exam</span>
+                    <span className="font-extrabold tracking-tight">
+                      BCS Exam
+                    </span>
                     <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
                   </NavLink>
 
@@ -272,7 +293,8 @@ const Navbar = () => {
                   <NavLink
                     to="/hsc/all-questions"
                     className={({ isActive }) => {
-                      const isHscActive = isActive || location.pathname.startsWith('/hsc');
+                      const isHscActive =
+                        isActive || location.pathname.startsWith("/hsc");
                       return `relative rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
                         isHscActive
                           ? "bg-emerald-50 text-accent shadow-md shadow-accent/20"
@@ -281,7 +303,9 @@ const Navbar = () => {
                     }}
                   >
                     <GraduationCap className="w-4 h-4" />
-                    <span className="font-extrabold tracking-tight">HSC Exam</span>
+                    <span className="font-extrabold tracking-tight">
+                      HSC Exam
+                    </span>
                     <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
                   </NavLink>
 
@@ -313,7 +337,8 @@ const Navbar = () => {
                   <NavLink
                     to="/bank/all-questions"
                     className={({ isActive }) => {
-                      const isBankActive = isActive || location.pathname.startsWith('/bank');
+                      const isBankActive =
+                        isActive || location.pathname.startsWith("/bank");
                       return `relative rounded-2xl text-sm xl:text-base font-bold px-5 py-3 transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
                         isBankActive
                           ? "bg-emerald-50 text-accent shadow-md shadow-accent/20"
@@ -322,7 +347,9 @@ const Navbar = () => {
                     }}
                   >
                     <Building2 className="w-4 h-4" />
-                    <span className="font-extrabold tracking-tight">Bank Exam</span>
+                    <span className="font-extrabold tracking-tight">
+                      Bank Exam
+                    </span>
                     <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
                   </NavLink>
 
@@ -434,14 +461,18 @@ const Navbar = () => {
                     onClick={handleLogOut}
                     className="group relative px-6 py-3 bg-destructive text-destructive-foreground rounded-2xl font-bold hover:bg-destructive/90 shadow-md hover:shadow-lg hover:shadow-destructive/30 hover:scale-105 transition-all duration-300 overflow-hidden"
                   >
-                    <span className="relative z-10 font-extrabold tracking-tight">Log Out</span>
+                    <span className="relative z-10 font-extrabold tracking-tight">
+                      Log Out
+                    </span>
                     <span className="absolute inset-0 bg-destructive/90 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                   </button>
                 </>
               ) : (
                 <Link to="/login">
                   <button className="group relative px-7 py-3 bg-accent text-accent-foreground rounded-2xl font-bold hover:bg-accent/90 shadow-md hover:shadow-lg hover:shadow-accent/30 hover:scale-105 transition-all duration-300 overflow-hidden">
-                    <span className="relative z-10 font-extrabold tracking-tight">Login</span>
+                    <span className="relative z-10 font-extrabold tracking-tight">
+                      Login
+                    </span>
                     <span className="absolute inset-0 bg-accent/90 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                   </button>
                 </Link>
@@ -454,9 +485,7 @@ const Navbar = () => {
       {/* Mobile Navigation Menu */}
       <div
         className={`lg:hidden fixed inset-0 z-40 transition-all duration-500 ${
-          isMobileMenuOpen
-            ? "visible opacity-100"
-            : "invisible opacity-0"
+          isMobileMenuOpen ? "visible opacity-100" : "invisible opacity-0"
         }`}
       >
         {/* Backdrop */}
@@ -475,21 +504,29 @@ const Navbar = () => {
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-border bg-card/50">
-            <h2 className="text-2xl font-black text-foreground">
-              Menu
-            </h2>
+            <h2 className="text-2xl font-black text-foreground">Menu</h2>
             <button
               onClick={() => setIsMobileMenuOpen(false)}
               className="p-2 rounded-xl bg-muted text-foreground hover:bg-muted/80 transition-all duration-300 hover:scale-110 hover:rotate-90"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
-          {/* Menu Items */}
-          <div className="px-4 pt-4 pb-6 space-y-2 max-h-[calc(100vh-8rem)] overflow-y-auto">
+          {/* Menu Items - FLAT STRUCTURE (No Dropdowns) */}
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-2">
             {/* Live Exams */}
             <MobileNavItem to="/LiveExams" icon="🔴">
               <div className="flex items-center gap-2">
@@ -501,149 +538,35 @@ const Navbar = () => {
               </div>
             </MobileNavItem>
 
-            {/* Mobile BCS Menu */}
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  if (showExamMenu) {
-                    // If already open, close it
-                    setShowExamMenu(false);
-                  } else {
-                    // If closed, open it and close others
-                    setShowExamMenu(true);
-                    setShowHscMenu(false);
-                    setShowBankMenu(false);
-                  }
-                }}
-                className="w-full text-left px-6 py-4 text-base font-semibold text-muted-foreground hover:bg-muted hover:text-accent flex items-center justify-between rounded-2xl transition-all duration-300 hover:shadow-sm"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-xl">📚</span>
-                  <span>BCS Exam</span>
-                </span>
-                <svg
-                  className={`w-5 h-5 transition-transform duration-300 ${
-                    showExamMenu ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              {showExamMenu && (
-                <div className="pl-6 space-y-1">
-                  <MobileNavItem to="/bcs/all-questions" icon="📄">
-                    All Questions Exam
-                  </MobileNavItem>
-                  <MobileNavItem to="/bcs/subjectwise" icon="📖">
-                    Subject Wise Exam
-                  </MobileNavItem>
-                </div>
-              )}
-            </div>
+            {/* BCS - All Questions */}
+            <MobileNavItem to="/bcs/all-questions" icon="📚">
+              BCS All Questions
+            </MobileNavItem>
 
-            {/* Mobile HSC Menu */}
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  if (showHscMenu) {
-                    // If already open, close it
-                    setShowHscMenu(false);
-                  } else {
-                    // If closed, open it and close others
-                    setShowHscMenu(true);
-                    setShowExamMenu(false);
-                    setShowBankMenu(false);
-                  }
-                }}
-                className="w-full text-left px-6 py-4 text-base font-semibold text-muted-foreground hover:bg-accent-50 hover:text-accent-700 flex items-center justify-between rounded-2xl transition-all duration-300 hover:shadow-sm"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-xl">🎓</span>
-                  <span>HSC Exam</span>
-                </span>
-                <svg
-                  className={`w-5 h-5 transition-transform duration-300 ${
-                    showHscMenu ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              {showHscMenu && (
-                <div className="pl-6 space-y-1">
-                  <MobileNavItem to="/hsc/all-questions" icon="📄">
-                    All Questions Exam
-                  </MobileNavItem>
-                  <MobileNavItem to="/hsc/subjectwise" icon="📖">
-                    Subject Wise Exam
-                  </MobileNavItem>
-                </div>
-              )}
-            </div>
+            {/* BCS - Subject Wise */}
+            <MobileNavItem to="/bcs/subjectwise" icon="�">
+              BCS Subject Wise
+            </MobileNavItem>
 
-            {/* Mobile Bank Menu */}
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  if (showBankMenu) {
-                    // If already open, close it
-                    setShowBankMenu(false);
-                  } else {
-                    // If closed, open it and close others
-                    setShowBankMenu(true);
-                    setShowExamMenu(false);
-                    setShowHscMenu(false);
-                  }
-                }}
-                className="w-full text-left px-6 py-4 text-base font-semibold text-muted-foreground hover:bg-accent-50 hover:text-accent-700 flex items-center justify-between rounded-2xl transition-all duration-300 hover:shadow-sm"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-xl">🏦</span>
-                  <span>Bank Exam</span>
-                </span>
-                <svg
-                  className={`w-5 h-5 transition-transform duration-300 ${
-                    showBankMenu ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              {showBankMenu && (
-                <div className="pl-6 space-y-1">
-                  <MobileNavItem to="/bank/all-questions" icon="📄">
-                    All Questions Exam
-                  </MobileNavItem>
-                  <MobileNavItem to="/bank/subjectwise" icon="📖">
-                    Subject Wise Exam
-                  </MobileNavItem>
-                </div>
-              )}
-            </div>
+            {/* HSC - All Questions */}
+            <MobileNavItem to="/hsc/all-questions" icon="🎓">
+              HSC All Questions
+            </MobileNavItem>
+
+            {/* HSC - Subject Wise */}
+            <MobileNavItem to="/hsc/subjectwise" icon="🎓">
+              HSC Subject Wise
+            </MobileNavItem>
+
+            {/* Bank - All Questions */}
+            <MobileNavItem to="/bank/all-questions" icon="🏦">
+              Bank All Questions
+            </MobileNavItem>
+
+            {/* Bank - Subject Wise */}
+            <MobileNavItem to="/bank/subjectwise" icon="🏦">
+              Bank Subject Wise
+            </MobileNavItem>
 
             {isAuthenticated && (
               <>
@@ -656,24 +579,30 @@ const Navbar = () => {
                 </MobileNavItem>
               </>
             )}
+          </div>
 
-            {/* Mobile Auth Button */}
-            <div className="pt-4">
-              {isAuthenticated ? (
-                <button
-                  onClick={handleLogOut}
-                  className="w-full px-6 py-4 text-base font-bold text-destructive-foreground bg-destructive rounded-2xl hover:bg-destructive/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02]"
-                >
-                  Log Out
-                </button>
-              ) : (
-                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <button className="w-full px-6 py-4 text-base font-bold text-accent-foreground bg-accent rounded-2xl hover:bg-accent/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02]">
-                    Login
-                  </button>
-                </Link>
-              )}
-            </div>
+          {/* Mobile Auth Button - Sticky Bottom */}
+          <div className="px-4 pb-4 border-t">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleLogOut}
+                className="w-full px-6 py-4 text-base font-bold text-destructive-foreground bg-destructive rounded-2xl hover:bg-destructive/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02]"
+              >
+                Log Out
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/login");
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full px-6 py-4 text-base font-bold text-accent-foreground bg-accent rounded-2xl hover:bg-accent/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02]"
+              >
+                Login
+              </button>
+            )}
           </div>
         </div>
       </div>
