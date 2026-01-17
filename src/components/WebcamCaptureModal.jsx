@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, AlertCircle, CheckCircle, Smartphone } from "lucide-react";
+import { X, AlertCircle, CheckCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import { useWebcamCapture } from "../hooks/useWebcamCapture";
 
@@ -23,22 +23,10 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
   const [isAutoCapturing, setIsAutoCapturing] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
   const [headPosition, setHeadPosition] = useState(null);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [faceApiReady, setFaceApiReady] = useState(false);
-  const [debugInfo, setDebugInfo] = useState("");
-  const [cancelled, setCancelled] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
   const faceCanvasRef = useRef(null);
   const detectionIntervalRef = useRef(null);
-  const animationFrameRef = useRef(null);
 
   const angles = [
-    {
-      key: "front",
-      label: "Look FRONT",
-      description: "Look straight at the camera",
-    },
     {
       key: "left",
       label: "Turn LEFT",
@@ -50,494 +38,327 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
       description: "Turn your head to the right",
     },
     { key: "up", label: "Look UP", description: "Look upward" },
+    { key: "down", label: "Look DOWN", description: "Look downward" },
   ];
 
-  // Detect mobile device
+  // Load face-api library
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        ) || window.innerWidth < 768;
-      setIsMobile(mobile);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Load face-api + models
-  useEffect(() => {
-    let timeoutId;
-
     const loadFaceApi = async () => {
       try {
-        if (window.faceapi?.nets?.tinyFaceDetector?.params) {
-          setFaceApiReady(true);
-          setModelsLoaded(true);
-          return;
-        }
-
-        if (!window.faceapi) {
-          const script = document.createElement("script");
-          script.src =
-            "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js";
-          script.async = true;
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-          });
-        }
-
-        const MODEL_URL =
-          "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
-
-        await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-        await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-
-        setFaceApiReady(true);
-        setModelsLoaded(true);
-      } catch (err) {
-        console.error("face-api load error", err);
-        setCameraError("Could not load face detection: " + err.message);
+        // Load face-api models
+        const script = document.createElement("script");
+        script.src =
+          "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js";
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error("Error loading face-api:", error);
       }
     };
 
-    if (!modelsLoaded && !faceApiReady) loadFaceApi();
+    loadFaceApi();
+  }, []);
 
-    timeoutId = setTimeout(() => {
-      if (!modelsLoaded) {
-        setCameraError("Face detection is taking too long. Please refresh.");
-      }
-    }, 20000);
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [modelsLoaded, faceApiReady, setCameraError]);
-
-  // Camera initialization
+  // Initialize camera
   useEffect(() => {
     if (isOpen && !cameraAccessGranted && !isCapturing) {
       startCamera();
     }
-    return () => {
-      if (detectionIntervalRef.current)
-        clearInterval(detectionIntervalRef.current);
-    };
-  }, [isOpen, cameraAccessGranted, isCapturing, startCamera]);
 
-  // Angle instructions
+    return () => {
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
+      }
+    };
+  }, [isOpen]);
+
+  // Update angle instructions
   useEffect(() => {
     setAngleInstructions(angles[currentAngleIndex].description);
   }, [currentAngleIndex]);
 
-  // Auto capture trigger
+  // Start auto-capture sequence
   useEffect(() => {
-    if (
-      cameraAccessGranted &&
-      !isAutoCapturing &&
-      modelsLoaded &&
-      faceApiReady
-    ) {
-      setTimeout(() => startAutoCapture(), 800);
+    if (cameraAccessGranted && !isAutoCapturing) {
+      startAutoCapture();
     }
-  }, [cameraAccessGranted, modelsLoaded, faceApiReady]);
+  }, [cameraAccessGranted]);
 
-  // Head angles calculation
-  const getHeadAngles = (landmarks) => {
-    if (!landmarks || landmarks.length < 46) return null;
+  const startAutoCapture = async () => {
+    setIsAutoCapturing(true);
 
-    const nose = landmarks[30];
-    const leftEye = landmarks[36];
-    const rightEye = landmarks[45];
+    for (let i = 0; i < angles.length; i++) {
+      setCurrentAngleIndex(i);
 
-    if (!nose || !leftEye || !rightEye) return null;
+      // Wait for face to be in correct position
+      await waitForCorrectPosition(angles[i].key);
 
-    const eyeCenterX = (leftEye.x + rightEye.x) / 2;
-    const eyeCenterY = (leftEye.y + rightEye.y) / 2;
+      // Capture image
+      try {
+        await captureWithFaceDetection(angles[i].key);
+        Swal.fire({
+          icon: "success",
+          title: "Captured!",
+          text: `${angles[i].label} captured successfully`,
+          timer: 1500,
+          showConfirmButton: false,
+          position: "top",
+        });
+      } catch (error) {
+        console.error("Capture error:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Capture Failed",
+          text: `Failed to capture ${angles[i].label}. Please try again.`,
+          confirmButtonColor: "#EF4444",
+        });
+        i--; // Retry this angle
+      }
 
-    const eyeDist = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
-    if (!eyeDist) return null;
+      // Wait between captures
+      if (i < angles.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
 
-    const nx = (nose.x - eyeCenterX) / eyeDist;
-    const ny = (nose.y - eyeCenterY) / eyeDist;
-
-    const yawDeg = nx * 40;
-    const pitchDeg = (ny - 0.5) * 60;
-
-    return { yaw: yawDeg, pitch: pitchDeg };
+    setIsAutoCapturing(false);
   };
 
-  const checkHeadPosition = (detection, angleKey) => {
+  const waitForCorrectPosition = (angle) => {
+    return new Promise((resolve) => {
+      let correctPositionCount = 0;
+      const requiredCount = 10; // Require 10 consecutive frames in correct position
+
+      const checkPosition = async () => {
+        if (!videoRef.current || !window.faceapi) {
+          return;
+        }
+
+        try {
+          const detections = await window.faceapi
+            .detectAllFaces(videoRef.current)
+            .withFaceLandmarks()
+            .withFaceExpressions();
+
+          if (detections.length === 0) {
+            setFaceDetected(false);
+            correctPositionCount = 0;
+            return;
+          }
+
+          setFaceDetected(true);
+          const detection = detections[0];
+          const isCorrectPosition = checkHeadPosition(detection, angle);
+
+          setHeadPosition({
+            isCorrect: isCorrectPosition,
+            landmarks: detection.landmarks,
+          });
+
+          if (isCorrectPosition) {
+            correctPositionCount++;
+            if (correctPositionCount >= requiredCount) {
+              clearInterval(detectionIntervalRef.current);
+              resolve();
+            }
+          } else {
+            correctPositionCount = 0;
+          }
+        } catch (error) {
+          console.error("Face detection error:", error);
+        }
+      };
+
+      detectionIntervalRef.current = setInterval(checkPosition, 100);
+      checkPosition();
+    });
+  };
+
+  const checkHeadPosition = (detection, angle) => {
     const landmarks = detection.landmarks.positions;
-    const ang = getHeadAngles(landmarks);
-    if (!ang) return false;
+    if (!landmarks || landmarks.length < 2) return false;
 
-    const { yaw, pitch } = ang;
+    // Get facial landmarks for position calculation
+    const nose = landmarks[30]; // Nose tip
+    const leftEye = landmarks[36]; // Left eye
+    const rightEye = landmarks[45]; // Right eye
 
-    const msg = `[${angleKey}] yaw=${yaw.toFixed(1)}°, pitch=${pitch.toFixed(
-      1
-    )}°`;
-    console.log(msg);
-    setDebugInfo(msg);
+    if (!nose || !leftEye || !rightEye) return false;
 
-    const FRONT_MAX_YAW = 6;
-    const FRONT_MAX_PITCH = 6;
+    // Calculate head position based on eye and nose alignment
+    const eyeDistance = Math.abs(rightEye.x - leftEye.x);
+    const noseToLeftEye = nose.x - leftEye.x;
+    const noseToRightEye = rightEye.x - nose.x;
 
-    const LEFT_MIN_YAW = -8;
-    const LEFT_MAX_YAW = -35;
-    const LEFT_MIN_PITCH = -10;
-    const LEFT_MAX_PITCH = 35;
+    // Horizontal position (left/right)
+    const horizontalRatio = noseToLeftEye / eyeDistance;
+    // Vertical position (up/down)
+    const verticalRatio = (nose.y - (leftEye.y + rightEye.y) / 2) / eyeDistance;
 
-    const RIGHT_MIN_YAW = 8;
-    const RIGHT_MAX_YAW = 35;
-    const RIGHT_MIN_PITCH = -10;
-    const RIGHT_MAX_PITCH = 35;
-
-    const UP_MAX_PITCH = -8;
-
-    switch (angleKey) {
-      case "front":
-        return (
-          Math.abs(yaw) <= FRONT_MAX_YAW && Math.abs(pitch) <= FRONT_MAX_PITCH
-        );
-
+    switch (angle) {
       case "left":
-        return (
-          yaw <= LEFT_MIN_YAW &&
-          yaw >= LEFT_MAX_YAW &&
-          pitch >= LEFT_MIN_PITCH &&
-          pitch <= LEFT_MAX_PITCH
-        );
-
+        return horizontalRatio > 0.55; // Nose closer to right eye
       case "right":
-        return (
-          yaw >= RIGHT_MIN_YAW &&
-          yaw <= RIGHT_MAX_YAW &&
-          pitch >= RIGHT_MIN_PITCH &&
-          pitch <= RIGHT_MAX_PITCH
-        );
-
+        return horizontalRatio < 0.45; // Nose closer to left eye
       case "up":
-        return pitch <= UP_MAX_PITCH && Math.abs(yaw) < 18;
-
+        return verticalRatio < -0.1; // Nose above eye level
+      case "down":
+        return verticalRatio > 0.1; // Nose below eye level
       default:
         return false;
     }
   };
 
-  const waitForCorrectPosition = (angleKey) => {
-    return new Promise((resolve) => {
-      let correct = 0;
-      const required = 4;
-      let last = Date.now();
-
-      const check = async () => {
-        if (cancelled) return;
-
-        const now = Date.now();
-        if (now - last < 120) return;
-        last = now;
-
-        if (!videoRef.current || !window.faceapi || !faceApiReady) return;
-
-        try {
-          const detections = await window.faceapi
-            .detectAllFaces(
-              videoRef.current,
-              new window.faceapi.TinyFaceDetectorOptions({
-                inputSize: 320,
-                scoreThreshold: 0.5,
-              })
-            )
-            .withFaceLandmarks();
-
-          if (!detections.length) {
-            setFaceDetected(false);
-            correct = 0;
-            return;
-          }
-
-          setFaceDetected(true);
-          const det = detections[0];
-          const ok = checkHeadPosition(det, angleKey);
-
-          setHeadPosition({
-            isCorrect: ok,
-            angle: angleKey,
-          });
-
-          if (ok) {
-            correct++;
-            if (correct >= required) {
-              if (detectionIntervalRef.current)
-                clearInterval(detectionIntervalRef.current);
-              resolve();
-            }
-          } else {
-            correct = 0;
-          }
-        } catch (e) {
-          console.error("waitForCorrectPosition error", e);
-        }
-      };
-
-      detectionIntervalRef.current = setInterval(check, 120);
-      check();
-    });
-  };
-
-  // Auto capture sequence
-  const startAutoCapture = async () => {
-    if (!cameraAccessGranted || !videoRef.current) return;
-
-    setCancelled(false);
-    setIsAutoCapturing(true);
-
-    for (let i = 0; i < angles.length; i++) {
-      if (cancelled) break;
-      const angle = angles[i];
-      setCurrentAngleIndex(i);
-
-      await waitForCorrectPosition(angle.key);
-      if (cancelled) break;
+  // Draw face detection visualization
+  useEffect(() => {
+    const drawFaceOval = async () => {
+      if (
+        !videoRef.current ||
+        !faceCanvasRef.current ||
+        !window.faceapi ||
+        !cameraAccessGranted
+      ) {
+        return;
+      }
 
       try {
+        const detections = await window.faceapi
+          .detectAllFaces(videoRef.current)
+          .withFaceLandmarks();
+
+        const ctx = faceCanvasRef.current.getContext("2d");
         const video = videoRef.current;
-        if (!cameraAccessGranted) throw new Error("Camera not granted");
-        if (!video || !video.srcObject)
-          throw new Error("Camera not initialized");
 
-        const result = await captureWithFaceDetection(angle.key);
-        if (!result) {
-          setIsAutoCapturing(false);
-          return;
-        }
+        // Clear canvas
+        ctx.clearRect(
+          0,
+          0,
+          faceCanvasRef.current.width,
+          faceCanvasRef.current.height
+        );
 
-        Swal.fire({
-          icon: "success",
-          title: "Captured!",
-          text: `${angle.label} captured successfully`,
-          timer: 1200,
-          showConfirmButton: false,
-          position: isMobile ? "top" : "top-end",
-          toast: isMobile ? false : true,
-        });
-      } catch (err) {
-        console.error("capture error", err);
-        if (String(err.message || "").includes("Camera not")) {
-          setIsAutoCapturing(false);
-          return;
+        // Set canvas size to match video
+        faceCanvasRef.current.width = video.videoWidth;
+        faceCanvasRef.current.height = video.videoHeight;
+
+        if (detections.length > 0) {
+          const detection = detections[0];
+          const landmarks = detection.landmarks.positions;
+
+          // Draw face oval
+          const minX = Math.min(...landmarks.map((p) => p.x));
+          const maxX = Math.max(...landmarks.map((p) => p.x));
+          const minY = Math.min(...landmarks.map((p) => p.y));
+          const maxY = Math.max(...landmarks.map((p) => p.y));
+
+          const centerX = (minX + maxX) / 2;
+          const centerY = (minY + maxY) / 2;
+          const radiusX = (maxX - minX) / 2 + 20;
+          const radiusY = (maxY - minY) / 2 + 40;
+
+          // Draw oval border
+          ctx.strokeStyle = faceDetected ? "#10B981" : "#EF4444";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Draw direction indicator
+          if (headPosition?.isCorrect) {
+            ctx.fillStyle = "rgba(16, 185, 129, 0.3)";
+            ctx.fill();
+          }
         }
-        i--;
+      } catch (error) {
+        console.error("Face drawing error:", error);
       }
 
-      if (i < angles.length - 1) {
-        await new Promise((r) => setTimeout(r, 800));
-      }
+      requestAnimationFrame(drawFaceOval);
+    };
+
+    if (cameraAccessGranted) {
+      drawFaceOval();
     }
+  }, [cameraAccessGranted, faceDetected, headPosition]);
 
-    setIsAutoCapturing(false);
-  };
-
-  // Vertical oval overlay with BLUR effect
-  useEffect(() => {
-    if (!cameraAccessGranted) return;
-
-    const drawOverlay = () => {
-      const video = videoRef.current;
-      const canvas = faceCanvasRef.current;
-      if (!video || !canvas) {
-        animationFrameRef.current = requestAnimationFrame(drawOverlay);
-        return;
-      }
-
-      const w = video.offsetWidth;
-      const h = video.offsetHeight;
-      if (!w || !h) {
-        animationFrameRef.current = requestAnimationFrame(drawOverlay);
-        return;
-      }
-
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, w, h);
-
-      const cx = w / 2;
-      const cy = h / 2;
-
-      // Adjust oval size for mobile
-      const rx = w * (isMobile ? 0.28 : 0.22);
-      const ry = h * (isMobile ? 0.35 : 0.4);
-
-      const color = headPosition?.isCorrect
-        ? "#10B981"
-        : faceDetected
-        ? "#F59E0B"
-        : "#9CA3AF";
-
-      // Draw semi-transparent dark overlay everywhere (blur effect)
-      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-      ctx.fillRect(0, 0, w, h);
-
-      // Cut out the oval (make it transparent - this creates the focus area)
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Reset to draw the border on top
-      ctx.globalCompositeOperation = "source-over";
-
-      // Draw glowing oval border
-      ctx.strokeStyle = color;
-      ctx.lineWidth = isMobile ? 3 : 4;
-      ctx.shadowBlur = isMobile ? 15 : 20;
-      ctx.shadowColor = color;
-
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Add inner subtle glow when correct position
-      if (headPosition?.isCorrect) {
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = "rgba(16, 185, 129, 0.3)";
-        ctx.lineWidth = isMobile ? 2 : 3;
-        ctx.stroke();
-      }
-
-      // Add subtle fill inside oval
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = headPosition?.isCorrect
-        ? "rgba(16,185,129,0.08)"
-        : "rgba(148,163,184,0.04)";
-      ctx.fill();
-
-      animationFrameRef.current = requestAnimationFrame(drawOverlay);
-    };
-
-    animationFrameRef.current = requestAnimationFrame(drawOverlay);
-    return () => {
-      if (animationFrameRef.current)
-        cancelAnimationFrame(animationFrameRef.current);
-    };
-  }, [cameraAccessGranted, headPosition, faceDetected, isMobile]);
-
-  // Close and complete handlers
   const handleClose = () => {
-    setCancelled(true);
-    if (detectionIntervalRef.current)
-      clearInterval(detectionIntervalRef.current);
-    if (animationFrameRef.current)
-      cancelAnimationFrame(animationFrameRef.current);
     stopCamera();
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+    }
     clearAllImages();
     setCurrentAngleIndex(0);
-    setIsAutoCapturing(false);
     onClose();
   };
 
   const handleComplete = () => {
-    setCancelled(true);
     stopCamera();
-    if (detectionIntervalRef.current)
+    if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
-    if (animationFrameRef.current)
-      cancelAnimationFrame(animationFrameRef.current);
+    }
     onComplete(capturedImages);
   };
 
   if (!isOpen) return null;
+
   const allCaptured = Object.values(capturedImages).every(
     (img) => img !== null
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b sticky top-0 bg-white z-20">
-          <div className="flex-1 min-w-0 pr-2">
-            <div className="flex items-center gap-2">
-              {isMobile && (
-                <Smartphone className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              )}
-              <h2 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">
-                Exam Verification
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Position your face within the frame
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Exam Verification
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Capture your face from four angles for monitoring
             </p>
           </div>
-          <button
-            onClick={handleClose}
-            className="btn btn-sm sm:btn-md btn-circle btn-ghost flex-shrink-0"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          <button onClick={handleClose} className="btn btn-circle btn-ghost">
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-          {/* Mobile Instructions Banner */}
-          {isMobile && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <Smartphone className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-blue-800">
-                  <strong>Mobile Tip:</strong> Hold your device steady and
-                  rotate your head (not your phone) for different angles.
-                </div>
-              </div>
-            </div>
-          )}
-
+        {/* Content */}
+        <div className="p-6 space-y-4">
           {cameraError && (
-            <div className="alert alert-error text-sm">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-xs sm:text-sm">{cameraError}</span>
+            <div className="alert alert-error">
+              <AlertCircle className="w-5 h-5" />
+              <div className="flex-1">
+                <span>{cameraError}</span>
+                <button
+                  onClick={startCamera}
+                  className="btn btn-sm btn-outline ml-4"
+                >
+                  Retry Camera
+                </button>
               </div>
-              <button
-                onClick={startCamera}
-                className="btn btn-sm btn-outline flex-shrink-0"
-              >
-                Retry
-              </button>
             </div>
           )}
 
-          {/* Steps Progress */}
-          <div className="flex gap-1.5 sm:gap-2 justify-between mb-2">
+          {/* Progress Steps */}
+          <div className="flex gap-2 justify-between mb-4">
             {angles.map((angle, idx) => (
               <div key={angle.key} className="flex-1 text-center">
                 <div
-                  className={`h-1.5 sm:h-2 rounded-full mb-1.5 sm:mb-2 ${
+                  className={`h-2 rounded-full mb-2 transition-all ${
                     capturedImages[angle.key]
                       ? "bg-green-500"
                       : idx === currentAngleIndex
-                      ? "bg-blue-500 animate-pulse"
+                      ? "bg-blue-500"
                       : "bg-gray-300"
                   }`}
                 />
-                <p className="text-[10px] sm:text-xs font-medium truncate">
-                  {isMobile ? angle.key.toUpperCase() : angle.label}
-                </p>
+                <p className="text-xs font-medium">{angle.label}</p>
               </div>
             ))}
           </div>
 
-          {/* Video Container */}
-          <div className="relative bg-black rounded-lg overflow-hidden aspect-video max-h-[50vh] sm:max-h-[400px]">
+          {/* Video Feed with Face Detection */}
+          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
             <video
               ref={videoRef}
               autoPlay
@@ -548,110 +369,94 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
             <canvas
               ref={faceCanvasRef}
               className="absolute inset-0 w-full h-full"
-              style={{ pointerEvents: "none" }}
             />
-            <canvas ref={canvasRef} className="hidden" />
 
-            {/* Debug Info */}
-            {debugInfo && !isMobile && (
-              <div className="absolute top-2 left-2 bg-black/75 text-white text-xs px-2 py-1 rounded font-mono z-10">
-                {debugInfo}
+            {/* Status Overlay */}
+            {isAutoCapturing && (
+              <div className="absolute bottom-4 left-4 right-4 bg-blue-600 text-white rounded-lg p-4 text-center">
+                <p className="font-semibold text-lg mb-2">
+                  {angleInstructions}
+                </p>
+                <p className="text-sm">
+                  {faceDetected
+                    ? headPosition?.isCorrect
+                      ? "✓ Position correct - Capturing..."
+                      : "Adjust your head position..."
+                    : "Face not detected"}
+                </p>
               </div>
             )}
 
-            {/* Loading Overlay */}
-            {!modelsLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 text-white z-30">
+            {!cameraAccessGranted && !isCapturing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 text-white z-10">
                 <div className="text-center p-4">
-                  <div className="loading loading-spinner loading-lg mb-2"></div>
-                  <p className="font-semibold text-sm sm:text-base">
-                    Loading face detection…
+                  <p className="mb-4 text-lg font-semibold">
+                    Camera access required
                   </p>
+                  <button
+                    onClick={startCamera}
+                    disabled={isCapturing}
+                    className="btn btn-primary text-white disabled:opacity-50"
+                  >
+                    {isCapturing ? "Starting Camera..." : "Enable Camera"}
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Instruction Overlay */}
-            {isAutoCapturing && modelsLoaded && (
-              <div
-                className={`absolute ${
-                  isMobile
-                    ? "bottom-2 left-2 right-2"
-                    : "bottom-4 left-4 right-4"
-                } text-white text-center rounded-lg px-3 py-2 sm:px-4 sm:py-3 z-20 ${
-                  headPosition?.isCorrect
-                    ? "bg-green-600"
-                    : faceDetected
-                    ? "bg-orange-500"
-                    : "bg-red-500"
-                }`}
-              >
-                <p className="font-semibold text-sm sm:text-lg">
-                  {angles[currentAngleIndex].label}
-                </p>
-                <p className="text-xs sm:text-sm mt-0.5">
-                  {faceDetected
-                    ? headPosition?.isCorrect
-                      ? "Hold still, capturing…"
-                      : angleInstructions
-                    : "Face not detected – center your face in the oval"}
-                </p>
+            {isCapturing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 text-white z-10">
+                <div className="text-center">
+                  <div className="loading loading-spinner loading-lg"></div>
+                  <p className="mt-2">Starting camera...</p>
+                </div>
               </div>
             )}
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-            <h3 className="font-semibold text-blue-900 mb-1 text-sm sm:text-base">
-              Instructions
-            </h3>
-            <ul className="text-xs sm:text-sm text-blue-800 space-y-1 list-disc list-inside">
-              <li>Align your face inside the vertical oval frame.</li>
-              <li>Follow the prompts: FRONT, LEFT, RIGHT, then UP.</li>
-              <li>Keep your head steady when the border turns green.</li>
-              <li>Photos are captured automatically for each angle.</li>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="font-semibold text-blue-900 mb-2">Instructions:</h3>
+            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+              <li>Position your face within the oval border</li>
+              <li>Follow the on-screen instructions for head movements</li>
+              <li>Keep good lighting and clear view of your face</li>
+              <li>
+                Photos will be captured automatically when in correct position
+              </li>
             </ul>
           </div>
 
-          {/* Previews */}
+          {/* Captured Images Preview */}
           {allCaptured && (
-            <div
-              className={`grid ${
-                isMobile ? "grid-cols-2" : "grid-cols-4"
-              } gap-2`}
-            >
+            <div className="grid grid-cols-4 gap-2">
               {angles.map((angle) => (
                 <div key={angle.key} className="text-center">
                   <img
                     src={capturedImages[angle.key].url}
                     alt={angle.label}
-                    className="w-full h-20 sm:h-24 object-cover rounded-lg border-2 border-green-500"
+                    className="w-full h-24 object-cover rounded-lg border-2 border-green-500"
                   />
-                  <p className="text-[10px] sm:text-xs font-medium mt-1 flex items-center justify-center gap-1">
-                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                    <span className="truncate">
-                      {isMobile ? angle.key : angle.label}
-                    </span>
+                  <p className="text-xs font-medium mt-1">
+                    <CheckCircle className="w-4 h-4 text-green-500 inline mr-1" />
+                    {angle.label}
                   </p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-2 sm:gap-3 pt-2">
-            <button
-              onClick={handleClose}
-              className="btn btn-sm sm:btn-md btn-outline flex-1"
-            >
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button onClick={handleClose} className="btn btn-outline flex-1">
               Cancel
             </button>
             <button
               onClick={handleComplete}
               disabled={!allCaptured}
-              className="btn btn-sm sm:btn-md btn-primary flex-1 text-white disabled:opacity-50"
+              className="btn btn-primary flex-1 text-white disabled:opacity-50"
             >
-              {allCaptured ? "Continue" : "Capturing…"}
+              {allCaptured ? "Continue" : "Capturing..."}
             </button>
           </div>
         </div>
