@@ -75,12 +75,14 @@ const Registration = () => {
       Swal.fire({
         icon: "success",
         title: "Success!",
-        text: "Registration completed. Please login.",
+        text: "Registration completed. Please check your email to verify your account.",
         timer: 2500,
         showConfirmButton: false,
       });
 
-      navigate("/login");
+      setTimeout(() => {
+        navigate("/verify-code", { state: { email: data.email, type: 'email' } });
+      }, 2500);
     } catch (err) {
       setError(err.message);
     }

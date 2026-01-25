@@ -76,11 +76,77 @@ const Login = () => {
         navigate(redirectPath, { replace: true });
       }, 2000);
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Login Failed",
-        text: err.message || "Server error, please try again later.",
-      });
+      // Parse error response
+      let errorMessage = err.message || "Server error, please try again later.";
+      let requiresVerification = false;
+      let userEmail = "";
+
+      // Try to get error data from response
+      try {
+        if (err.message) {
+          const match = err.message.match(/Please verify your email/);
+          if (match) {
+            requiresVerification = true;
+            // Extract email from formData since we have it
+            userEmail = formData.emailOrUsername;
+          }
+        }
+      } catch (parseErr) {
+        // Ignore parse errors
+      }
+      
+      // Check if error is due to unverified email
+      if (requiresVerification) {
+        const result = await Swal.fire({
+          icon: "warning",
+          title: "Email Not Verified",
+          text: "Please verify your email before logging in.",
+          showCancelButton: true,
+          confirmButtonText: "Resend Code",
+          cancelButtonText: "OK",
+          confirmButtonColor: "#667eea",
+        });
+
+        if (result.isConfirmed) {
+          // Resend verification code
+          try {
+            const resendRes = await fetch(`${BACKEND_URL}/user/resend-verification-code`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: userEmail }),
+            });
+
+            const resendData = await resendRes.json();
+
+            if (resendRes.ok) {
+              Swal.fire({
+                icon: "success",
+                title: "Code Sent!",
+                text: "Verification code sent to your email.",
+                timer: 2000,
+                showConfirmButton: false,
+              });
+              setTimeout(() => {
+                navigate("/verify-code", { state: { email: userEmail, type: 'email' } });
+              }, 2000);
+            } else {
+              throw new Error(resendData.message || "Failed to resend code");
+            }
+          } catch (resendErr) {
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: resendErr.message || "Failed to resend code. Please try again.",
+            });
+          }
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Login Failed",
+          text: errorMessage,
+        });
+      }
     }
     setLoading(false);
   };

@@ -48,7 +48,7 @@ const ForgotPassword = () => {
 
       // Navigate to verify code page with email pre-filled
       setTimeout(() => {
-        navigate("/verify-reset-code", { state: { email } });
+        navigate("/verify-code", { state: { email, type: 'password-reset' } });
       }, 2500);
     } catch (err) {
       Swal.fire({

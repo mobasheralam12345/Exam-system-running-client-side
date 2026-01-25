@@ -1,27 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-const VerifyResetCode = () => {
+const VerifyCode = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Get props from navigation state
   const email = location.state?.email;
+  const type = location.state?.type; // 'email' or 'password-reset'
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
-  // Redirect if no email
-  React.useEffect(() => {
-    if (!email) {
+  // Configuration based on type
+  const config = {
+    'email': {
+      title: 'Verify Your Email',
+      description: "We've sent a 6-digit verification code to:",
+      endpoint: '/user/verify-email',
+      resendEndpoint: '/user/resend-verification-code',
+      successMessage: 'Your account has been verified. You can now login.',
+      redirectPath: '/login',
+      fallbackPath: '/register',
+      fallbackMessage: 'Please register first.',
+    },
+    'password-reset': {
+      title: 'Verify Code',
+      description: 'Enter the 6-digit verification code sent to:',
+      endpoint: '/user/verify-reset-code',
+      resendEndpoint: '/user/request-password-reset',
+      successMessage: 'Now you can set your new password.',
+      redirectPath: '/set-new-password',
+      fallbackPath: '/forgot-password',
+      fallbackMessage: 'Please start from the forgot password page.',
+    }
+  };
+
+  const currentConfig = config[type] || config['email'];
+
+  // Redirect if no email or invalid type
+  useEffect(() => {
+    if (!email || !type || !config[type]) {
       Swal.fire({
         icon: "error",
         title: "Invalid Access",
-        text: "Please start from the forgot password page.",
+        text: currentConfig.fallbackMessage,
       });
-      navigate("/forgot-password");
+      navigate(currentConfig.fallbackPath);
     }
-  }, [email, navigate]);
+  }, [email, type, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,13 +76,10 @@ const VerifyResetCode = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/user/verify-reset-code`, {
+      const res = await fetch(`${BACKEND_URL}${currentConfig.endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          code,
-        }),
+        body: JSON.stringify({ email, code }),
       });
 
       const data = await res.json();
@@ -63,21 +90,19 @@ const VerifyResetCode = () => {
 
       Swal.fire({
         icon: "success",
-        title: "Code Verified!",
-        text: "Now you can set your new password.",
-        timer: 1500,
+        title: type === 'email' ? "Email Verified!" : "Code Verified!",
+        text: currentConfig.successMessage,
+        timer: type === 'email' ? 2500 : 1500,
         showConfirmButton: false,
       });
 
-      // Navigate to set new password page with email and code
       setTimeout(() => {
-        navigate("/set-new-password", { 
-          state: { 
-            email, 
-            code 
-          } 
-        });
-      }, 1500);
+        if (type === 'password-reset') {
+          navigate(currentConfig.redirectPath, { state: { email, code } });
+        } else {
+          navigate(currentConfig.redirectPath);
+        }
+      }, type === 'email' ? 2500 : 1500);
     } catch (err) {
       Swal.fire({
         icon: "error",
@@ -88,14 +113,46 @@ const VerifyResetCode = () => {
     setLoading(false);
   };
 
+  const handleResendCode = async () => {
+    setResending(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}${currentConfig.resendEndpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to resend code");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Code Sent!",
+        text: "A new verification code has been sent to your email.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.message || "Server error, please try again later.",
+      });
+    }
+    setResending(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-16">
       <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-12 font-sans">
         <h1 className="text-4xl font-extrabold mb-4 text-indigo-700 drop-shadow-lg select-none text-center">
-          Verify Code
+          {currentConfig.title}
         </h1>
         <p className="text-gray-600 text-center mb-2">
-          Enter the 6-digit verification code sent to:
+          {currentConfig.description}
         </p>
         <p className="text-indigo-700 font-semibold text-center mb-8">
           {email}
@@ -135,10 +192,11 @@ const VerifyResetCode = () => {
         <div className="mt-8 flex justify-between text-indigo-700 font-semibold text-sm select-none">
           <button
             type="button"
-            onClick={() => navigate("/forgot-password")}
-            className="underline hover:text-indigo-900"
+            onClick={handleResendCode}
+            disabled={resending}
+            className="underline hover:text-indigo-900 disabled:opacity-50"
           >
-            Resend Code
+            {resending ? "Sending..." : "Resend Code"}
           </button>
           <button
             type="button"
@@ -153,4 +211,4 @@ const VerifyResetCode = () => {
   );
 };
 
-export default VerifyResetCode;
+export default VerifyCode;

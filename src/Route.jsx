@@ -6,7 +6,7 @@ import About from "./Pages/About";
 import Login from "./Pages/Login/Login";
 import Register from "./Pages/Register/Register";
 import ForgotPassword from "./Pages/ForgotPassword/ForgotPassword";
-import VerifyResetCode from "./Pages/VerifyResetCode/VerifyResetCode";
+import VerifyCode from "./Pages/VerifyCode/VerifyCode";
 import SetNewPassword from "./Pages/SetNewPassword/SetNewPassword";
 import BcsExam from "./Pages/BcsExam/BcsExam";
 import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
@@ -61,8 +61,8 @@ const router = createBrowserRouter([
         element: <ForgotPassword />,
       },
       {
-        path: "/verify-reset-code",
-        element: <VerifyResetCode />,
+        path: "/verify-code",
+        element: <VerifyCode />,
       },
       {
         path: "/set-new-password",
