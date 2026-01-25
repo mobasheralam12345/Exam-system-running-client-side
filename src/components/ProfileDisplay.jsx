@@ -25,8 +25,6 @@ const ProfileDisplay = ({ verificationStatus = null }) => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordVerified, setPasswordVerified] = useState(false);
 
-  // Debug: log profile data when it changes
-  console.log("ProfileDisplay received profile:", profile);
 
   // Initialize edit data when profile loads
   const getEditableProfile = () => {
