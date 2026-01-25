@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { Eye, EyeOff } from "lucide-react";
@@ -26,6 +26,15 @@ const Registration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError("");
@@ -34,12 +43,12 @@ const Registration = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      // Store the actual file object instead of base64
+      setFormData((prev) => ({ ...prev, image: file }));
+      
+      // Create preview URL for display
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
     }
   };
 
@@ -58,12 +67,24 @@ const Registration = () => {
 
     setLoading(true);
     try {
-      const submissionData = { ...formData }; // image is base64 string here
+      // Use FormData for multipart/form-data submission
+      const submitData = new FormData();
+      submitData.append("username", formData.username);
+      submitData.append("name", formData.name);
+      submitData.append("email", formData.email);
+      submitData.append("phone", formData.phone);
+      submitData.append("address", formData.address);
+      submitData.append("collegeOrUniversity", formData.collegeOrUniversity);
+      submitData.append("password", formData.password);
+      
+      // Append image file if exists
+      if (formData.image) {
+        submitData.append("image", formData.image);
+      }
 
       const res = await fetch(`${BACKEND_URL}/user/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submissionData),
+        body: submitData, // Send FormData (no Content-Type header needed)
       });
 
       const data = await res.json();
