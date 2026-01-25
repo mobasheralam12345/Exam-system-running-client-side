@@ -56,6 +56,62 @@ const LiveExamRoom = () => {
     const checkRegistration = async () => {
       if (!passedExamData) return;
 
+      // For demo exams, check verification but skip registration
+      if (passedExamData.isDemo) {
+        console.log("✅ Demo exam detected - checking verification...");
+        
+        const token = localStorage.getItem("userToken");
+        if (!token) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Login Required",
+            text: "Please login to enter the demo exam",
+            confirmButtonText: "Go to Login",
+          }).then(() => {
+            navigate("/login");
+          });
+          return;
+        }
+
+        // Check if user is verified
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/api/profile/verification-status`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (!data.success || !data.data?.isVerified) {
+              await Swal.fire({
+                icon: "warning",
+                title: "Verification Required",
+                html: "Please verify your profile with images before taking the demo exam.",
+                confirmButtonText: "Go to Profile",
+                showCancelButton: true,
+                cancelButtonText: "Cancel",
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  navigate("/profile");
+                } else {
+                  navigate("/LiveExams");
+                }
+              });
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Verification check error:", error);
+        }
+        
+        // Verification passed, allow demo exam entry
+        return;
+      }
+
       const token = localStorage.getItem("userToken");
       if (!token) {
         await Swal.fire({
@@ -98,7 +154,7 @@ const LiveExamRoom = () => {
             if (result.isConfirmed) {
               navigate("/profile");
             } else {
-              navigate("/live-exams");
+              navigate("/LiveExams");
             }
           });
           return;
@@ -111,7 +167,7 @@ const LiveExamRoom = () => {
             text: "You must register for this exam before entering. Please register first.",
             confirmButtonText: "Go to Exams",
           }).then(() => {
-            navigate("/live-exams");
+            navigate("/LiveExams");
           });
           return;
         }
@@ -171,7 +227,7 @@ const LiveExamRoom = () => {
         setCommonViolationCount(parseInt(savedCommonViolations, 10));
       }
     } else {
-      navigate("/live-exams");
+      navigate("/LiveExams");
     }
   }, [location.state, navigate]);
 

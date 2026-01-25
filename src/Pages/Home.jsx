@@ -15,6 +15,8 @@ import {
   GraduationCap,
   Building2,
 } from "lucide-react";
+import DemoExamBanner from "../components/DemoExamBanner";
+import PracticeExamBanner from "../components/PracticeExamBanner";
 
 export default function ExamDeskHomepage() {
   const [isVisible, setIsVisible] = useState(false);
