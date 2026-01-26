@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,6 +31,9 @@ const Navbar = () => {
 
   // Dropdown state for user icon dropdown
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  
+  // User profile state
+  const [userProfile, setUserProfile] = useState(null);
 
   // Dropdown refs
   const bcsDropdownRef = useRef(null);
@@ -39,6 +44,32 @@ const Navbar = () => {
   const examTimeoutRef = useRef(null);
   const hscTimeoutRef = useRef(null);
   const bankTimeoutRef = useRef(null);
+
+  // Fetch user profile when authenticated
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const token = localStorage.getItem("userToken");
+      if (token) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/user/profile`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUserProfile(data.user);
+          }
+        } catch (error) {
+          console.error("Failed to fetch user profile:", error);
+        }
+      } else {
+        setUserProfile(null);
+      }
+    };
+
+    fetchUserProfile();
+  }, [isAuthenticated]);
 
   // Listen for authentication changes
   useEffect(() => {
@@ -62,6 +93,7 @@ const Navbar = () => {
     setIsAuthenticated(false);
     setIsMobileMenuOpen(false);
     setUserDropdownOpen(false);
+    setUserProfile(null);
 
     window.dispatchEvent(new Event("authChange"));
 
@@ -396,13 +428,25 @@ const Navbar = () => {
                   <div className="relative" ref={userDropdownRef}>
                     <button
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="group relative flex items-center justify-center rounded-2xl bg-muted hover:bg-muted/80 p-3 text-foreground hover:text-accent transition-all duration-300 hover:scale-110 shadow-md hover:shadow-lg hover:shadow-accent/40"
+                      className="group relative flex items-center justify-center rounded-2xl bg-muted hover:bg-muted/80 transition-all duration-300 hover:scale-110 shadow-md hover:shadow-lg hover:shadow-accent/40 overflow-hidden"
                       aria-haspopup="true"
                       aria-expanded={userDropdownOpen}
                     >
                       {/* Glow effect */}
                       <div className="absolute inset-0 bg-accent rounded-2xl blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-300" />
-                      <User className="w-5 h-5 relative z-10" />
+                      {userProfile?.image ? (
+                        <img
+                          src={userProfile.image}
+                          alt={userProfile.name || "Profile"}
+                          className="w-10 h-10 rounded-2xl object-cover relative z-10"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center relative z-10">
+                          <span className="text-lg font-bold text-accent">
+                            {(userProfile?.name || "U").charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </button>
                     {userDropdownOpen && (
                       <div
@@ -526,7 +570,7 @@ const Navbar = () => {
           </div>
 
           {/* Menu Items - FLAT STRUCTURE (No Dropdowns) */}
-          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-2">
+          <div className="overflow-y-auto px-4 pt-4 pb-4 space-y-2" style={{ maxHeight: 'calc(100vh - 180px)' }}>
             {/* Live Exams */}
             <MobileNavItem to="/LiveExams" icon="🔴">
               <div className="flex items-center gap-2">

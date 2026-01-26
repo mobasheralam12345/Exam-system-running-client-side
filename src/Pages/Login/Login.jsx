@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
+import { Eye, EyeOff } from "lucide-react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -12,6 +13,7 @@ const Login = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Get redirect path from location state or fallback to "/"
   const redirectPath = location.state?.from?.pathname || "/";
@@ -74,11 +76,77 @@ const Login = () => {
         navigate(redirectPath, { replace: true });
       }, 2000);
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Login Failed",
-        text: err.message || "Server error, please try again later.",
-      });
+      // Parse error response
+      let errorMessage = err.message || "Server error, please try again later.";
+      let requiresVerification = false;
+      let userEmail = "";
+
+      // Try to get error data from response
+      try {
+        if (err.message) {
+          const match = err.message.match(/Please verify your email/);
+          if (match) {
+            requiresVerification = true;
+            // Extract email from formData since we have it
+            userEmail = formData.emailOrUsername;
+          }
+        }
+      } catch (parseErr) {
+        // Ignore parse errors
+      }
+      
+      // Check if error is due to unverified email
+      if (requiresVerification) {
+        const result = await Swal.fire({
+          icon: "warning",
+          title: "Email Not Verified",
+          text: "Please verify your email before logging in.",
+          showCancelButton: true,
+          confirmButtonText: "Resend Code",
+          cancelButtonText: "OK",
+          confirmButtonColor: "#667eea",
+        });
+
+        if (result.isConfirmed) {
+          // Resend verification code
+          try {
+            const resendRes = await fetch(`${BACKEND_URL}/user/resend-verification-code`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: userEmail }),
+            });
+
+            const resendData = await resendRes.json();
+
+            if (resendRes.ok) {
+              Swal.fire({
+                icon: "success",
+                title: "Code Sent!",
+                text: "Verification code sent to your email.",
+                timer: 2000,
+                showConfirmButton: false,
+              });
+              setTimeout(() => {
+                navigate("/verify-code", { state: { email: userEmail, type: 'email' } });
+              }, 2000);
+            } else {
+              throw new Error(resendData.message || "Failed to resend code");
+            }
+          } catch (resendErr) {
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: resendErr.message || "Failed to resend code. Please try again.",
+            });
+          }
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Login Failed",
+          text: errorMessage,
+        });
+      }
     }
     setLoading(false);
   };
@@ -117,18 +185,27 @@ const Login = () => {
             >
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              className="w-full px-5 py-3 border rounded-xl text-lg border-gray-300 shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-400 transition hover:shadow-lg"
-              disabled={loading}
-              autoComplete="current-password"
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className="w-full px-5 py-3 pr-12 border rounded-xl text-lg border-gray-300 shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-400 transition hover:shadow-lg"
+                disabled={loading}
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           <button

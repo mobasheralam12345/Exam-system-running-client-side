@@ -25,8 +25,6 @@ const ProfileDisplay = ({ verificationStatus = null }) => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordVerified, setPasswordVerified] = useState(false);
 
-  // Debug: log profile data when it changes
-  console.log("ProfileDisplay received profile:", profile);
 
   // Initialize edit data when profile loads
   const getEditableProfile = () => {
@@ -184,14 +182,36 @@ const ProfileDisplay = ({ verificationStatus = null }) => {
 
       {/* Header Card */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-xl shadow-lg p-6 md:p-8 text-white">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              {profile?.fullName || profile?.name || "User Profile"}
-            </h1>
-            <p className="text-blue-100">
-              Welcome to your exam verification profile
-            </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex items-center gap-6">
+            {/* Profile Image */}
+            <div className="flex-shrink-0">
+              {profile?.image ? (
+                <img
+                  src={profile.image}
+                  alt={profile?.fullName || profile?.name || "Profile"}
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white shadow-lg flex items-center justify-center">
+                  <span className="text-4xl md:text-5xl font-bold text-white">
+                    {(profile?.fullName || profile?.name || "U")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* User Info */}
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                {profile?.fullName || profile?.name || "User Profile"}
+              </h1>
+              <p className="text-blue-100">
+                Welcome to your exam verification profile
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {getVerificationBadge()}

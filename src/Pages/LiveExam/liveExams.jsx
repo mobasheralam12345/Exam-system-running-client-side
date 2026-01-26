@@ -517,6 +517,11 @@ const LiveExamsPage = () => {
 
   // Check registration before entering exam
   const checkRegistrationBeforeEnter = async (exam) => {
+    // Skip registration check for demo exams
+    if (exam.isDemo) {
+      return true; // Demo exams don't require registration
+    }
+
     const token = localStorage.getItem("userToken");
     if (!token) {
       await Swal.fire({
@@ -669,7 +674,7 @@ const LiveExamsPage = () => {
     currentTime,
   ]);
 
-  const getExamStatus = (startTime, endTime) => {
+  const getExamStatus = (startTime, endTime, exam) => {
     const start = new Date(startTime);
     const end = new Date(endTime);
     const timeDiff = start.getTime() - currentTime.getTime();
@@ -678,7 +683,8 @@ const LiveExamsPage = () => {
     if (timeDiff <= 0 && timeToEnd > 0) {
       return {
         status: "running",
-        timeRemaining: Math.floor(timeToEnd / (1000 * 60)),
+        // For demo exams, show duration instead of calculating from end time
+        timeRemaining: exam?.isDemo ? exam.duration : Math.floor(timeToEnd / (1000 * 60)),
         buttonText: "🚀 Enter Exam",
         buttonColor: "from-green-500 to-emerald-600",
         statusText: "🔴 LIVE NOW",
@@ -755,7 +761,7 @@ const LiveExamsPage = () => {
   };
 
   const ExamCard = ({ exam }) => {
-    const examStatus = getExamStatus(exam.startTime, exam.endTime);
+    const examStatus = getExamStatus(exam.startTime, exam.endTime, exam);
     const categoryConfig = getCategoryConfig(exam.examType);
 
     const handleSetReminder = async (e) => {
@@ -774,7 +780,60 @@ const LiveExamsPage = () => {
     const handleEnterExam = async (e) => {
       e.preventDefault();
       
-      // Check if user is authenticated
+      // For demo exams, check login and verification but skip registration
+      if (exam.isDemo) {
+        const token = localStorage.getItem("userToken");
+        if (!token) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Login Required",
+            text: "Please login to enter the demo exam",
+            confirmButtonText: "Go to Login",
+            showCancelButton: true,
+            cancelButtonText: "Cancel",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/login");
+            }
+          });
+          return;
+        }
+
+        // Check if user is verified
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/api/profile/verification-status`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (!data.success || !data.data?.isVerified) {
+              await Swal.fire({
+                icon: "warning",
+                title: "Verification Required",
+                html: "Please verify your profile with images before taking the demo exam.",
+                confirmButtonText: "Go to Profile",
+                showCancelButton: true,
+                cancelButtonText: "Cancel",
+              });
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Verification check error:", error);
+        }
+
+        // Verification passed, navigate to demo exam
+        navigate("/exam/live", { state: { examData: exam } });
+        return;
+      }
+      
+      // Check if user is authenticated (for non-demo exams)
       const token = localStorage.getItem("userToken");
       if (!token) {
         await Swal.fire({
@@ -792,7 +851,7 @@ const LiveExamsPage = () => {
         return;
       }
 
-      // Check registration before entering
+      // Check registration before entering (for non-demo exams)
       const isRegistered = await checkRegistrationBeforeEnter(exam);
       if (!isRegistered) {
         return; // Registration modal will be shown by checkRegistrationBeforeEnter

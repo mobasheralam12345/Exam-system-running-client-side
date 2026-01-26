@@ -11,11 +11,15 @@ const useExamTimer = (examStarted, examCompleted, examData, onTimeUp) => {
 
       if (now < examStart) {
         setTimeLeft(0);
-      } else if (now >= examEnd) {
+      } else if (!examData.isDemo && now >= examEnd) {
+        // For non-demo exams, check if time has expired
         setTimeLeft(0);
         onTimeUp("time_up");
       } else {
-        const remainingMs = examEnd - now;
+        // For demo exams, use duration; for regular exams, calculate from end time
+        const remainingMs = examData.isDemo 
+          ? examData.duration * 60 * 1000  // Demo: use duration in minutes
+          : examEnd - now;                  // Regular: calculate from end time
         setTimeLeft(Math.max(0, Math.floor(remainingMs / 1000)));
       }
     }

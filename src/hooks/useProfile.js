@@ -25,7 +25,6 @@ export const useProfile = () => {
 
       // Fetch user profile
       const profileResponse = await profileService.getProfile();
-      console.log("Profile response:", profileResponse);
 
       // Handle both nested (data.data) and direct response format
       const profileData = profileResponse?.data || profileResponse;
@@ -33,7 +32,6 @@ export const useProfile = () => {
 
       // Also fetch verification status
       const verifyStatusResponse = await profileService.getVerificationStatus();
-      console.log("Verification status response:", verifyStatusResponse);
 
       const verifyData = verifyStatusResponse?.data || verifyStatusResponse;
       setVerificationStatus(verifyData);
@@ -52,7 +50,6 @@ export const useProfile = () => {
       setUpdating(true);
       setError(null);
       const response = await profileService.updateProfile(updatedData);
-      console.log("Update profile response:", response);
 
       // Handle both nested and direct response format
       const updatedProfile = response?.data || response;
@@ -94,10 +91,6 @@ export const useProfile = () => {
   const refetchVerificationStatus = useCallback(async () => {
     try {
       const verifyStatusResponse = await profileService.getVerificationStatus();
-      console.log(
-        "Refetch verification status response:",
-        verifyStatusResponse
-      );
 
       const verifyData = verifyStatusResponse?.data || verifyStatusResponse;
       setVerificationStatus(verifyData);
@@ -112,7 +105,6 @@ export const useProfile = () => {
     try {
       setError(null);
       const response = await profileService.verifyPassword(password);
-      console.log("Password verification response:", response);
       return response;
     } catch (err) {
       const errorMsg =

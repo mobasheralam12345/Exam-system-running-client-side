@@ -15,6 +15,8 @@ import {
   GraduationCap,
   Building2,
 } from "lucide-react";
+import DemoExamBanner from "../components/DemoExamBanner";
+import PracticeExamBanner from "../components/PracticeExamBanner";
 
 export default function ExamDeskHomepage() {
   const [isVisible, setIsVisible] = useState(false);
@@ -112,9 +114,9 @@ export default function ExamDeskHomepage() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative md:min-h-screen flex items-center justify-center overflow-hidden pt-20 md:pt-16 pb-6 md:pb-0">
+        <div className="container mx-auto px-2 md:px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-12 items-center">
             {/* Left Content */}
             <div
               className={`transform transition-all duration-1000 ${
@@ -123,20 +125,20 @@ export default function ExamDeskHomepage() {
                   : "-translate-x-20 opacity-0"
               }`}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent-50 rounded-full mb-6 border border-accent-200/50">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent-50 rounded-full mb-3 md:mb-6 border border-accent-200/50">
                 <Sparkles className="w-4 h-4 text-accent" />
                 <span className="text-sm font-semibold text-accent">
                   Your Success Partner
                 </span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold mb-6 leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold mb-3 md:mb-6 leading-tight">
                 <span className="text-foreground">
                   ExamDesk
                 </span>
               </h1>
               
-              <p className="text-lg sm:text-xl lg:text-2xl mb-8 text-muted-foreground leading-relaxed">
+              <p className="text-lg sm:text-xl lg:text-2xl mb-4 md:mb-8 text-muted-foreground leading-relaxed">
                 Your gateway to success in{" "}
                 <span className="font-bold text-foreground">BCS</span>,{" "}
                 <span className="font-bold text-foreground">HSC</span>, and{" "}
@@ -144,7 +146,7 @@ export default function ExamDeskHomepage() {
                 Practice with confidence, excel with excellence.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 mb-12">
+              <div className="flex flex-col sm:flex-row gap-4 mb-6 md:mb-12">
                 <button className="group relative px-8 py-4 bg-accent text-accent-foreground rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-accent/40 overflow-hidden">
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     Start Free Practice
@@ -185,14 +187,14 @@ export default function ExamDeskHomepage() {
               }`}
             >
               <div className="relative">
-                <div className="bg-card/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-border hover:shadow-accent/10 transition-all duration-500 hover:scale-105">
-                  <div className="text-center mb-6">
-                    <h3 className="text-3xl font-bold text-foreground mb-2">
+                <div className="bg-card/80 backdrop-blur-xl rounded-3xl p-4 md:p-8 shadow-xl border border-border hover:shadow-accent/10 transition-all duration-500 hover:scale-105">
+                  <div className="text-center mb-3 md:mb-6">
+                    <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                       Quick Stats
                     </h3>
                     <p className="text-muted-foreground font-medium">Our Achievement So Far</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-2 gap-3 md:gap-6">
                     {stats.map((stat, index) => (
                       <div
                         key={index}
@@ -219,7 +221,7 @@ export default function ExamDeskHomepage() {
 
       {/* Features Section */}
       <section className="py-20 bg-gradient-to-br from-white/50 to-purple-50/50 backdrop-blur-sm relative">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-3 md:px-6">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent-50 rounded-full mb-4 border border-accent-200/50">
               <Sparkles className="w-4 h-4 text-accent" />
@@ -265,7 +267,7 @@ export default function ExamDeskHomepage() {
 
       {/* Services Section */}
       <section className="py-20 bg-gradient-to-br from-purple-50/50 to-cyan-50/50 relative">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-3 md:px-6">
           <div className="text-center mb-16">
             <h2 className="text-5xl font-extrabold text-foreground mb-4">
               Our Services
@@ -353,7 +355,7 @@ export default function ExamDeskHomepage() {
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
         </div>
 
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="container mx-auto px-3 md:px-6 relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-5xl font-extrabold text-foreground mb-4">
               Success Stories
@@ -414,7 +416,7 @@ export default function ExamDeskHomepage() {
           <div className="absolute bottom-10 right-10 w-64 h-64 bg-accent/10 rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-2000"></div>
         </div>
 
-        <div className="container mx-auto px-6 text-center relative z-10">
+        <div className="container mx-auto px-3 md:px-6 text-center relative z-10">
           <h2 className="text-5xl font-extrabold text-foreground mb-6">
             Ready to Start Your Journey?
           </h2>

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { Eye, EyeOff } from "lucide-react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -22,6 +23,17 @@ const Registration = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -31,12 +43,12 @@ const Registration = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      // Store the actual file object instead of base64
+      setFormData((prev) => ({ ...prev, image: file }));
+      
+      // Create preview URL for display
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
     }
   };
 
@@ -55,12 +67,24 @@ const Registration = () => {
 
     setLoading(true);
     try {
-      const submissionData = { ...formData }; // image is base64 string here
+      // Use FormData for multipart/form-data submission
+      const submitData = new FormData();
+      submitData.append("username", formData.username);
+      submitData.append("name", formData.name);
+      submitData.append("email", formData.email);
+      submitData.append("phone", formData.phone);
+      submitData.append("address", formData.address);
+      submitData.append("collegeOrUniversity", formData.collegeOrUniversity);
+      submitData.append("password", formData.password);
+      
+      // Append image file if exists
+      if (formData.image) {
+        submitData.append("image", formData.image);
+      }
 
       const res = await fetch(`${BACKEND_URL}/user/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submissionData),
+        body: submitData, // Send FormData (no Content-Type header needed)
       });
 
       const data = await res.json();
@@ -72,12 +96,14 @@ const Registration = () => {
       Swal.fire({
         icon: "success",
         title: "Success!",
-        text: "Registration completed. Please login.",
+        text: "Registration completed. Please check your email to verify your account.",
         timer: 2500,
         showConfirmButton: false,
       });
 
-      navigate("/login");
+      setTimeout(() => {
+        navigate("/verify-code", { state: { email: data.email, type: 'email' } });
+      }, 2500);
     } catch (err) {
       setError(err.message);
     }
@@ -220,16 +246,25 @@ const Registration = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                placeholder="Enter your password"
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  placeholder="Enter your password"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {/* Confirm Password */}
@@ -237,16 +272,25 @@ const Registration = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Confirm Password
               </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                placeholder="Confirm your password"
-                autoComplete="off"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  placeholder="Confirm your password"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {/* Error message */}

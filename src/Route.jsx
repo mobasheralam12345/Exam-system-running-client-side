@@ -5,6 +5,9 @@ import PrivateRoute from "./Pages/PrivateRoute";
 import About from "./Pages/About";
 import Login from "./Pages/Login/Login";
 import Register from "./Pages/Register/Register";
+import ForgotPassword from "./Pages/ForgotPassword/ForgotPassword";
+import VerifyCode from "./Pages/VerifyCode/VerifyCode";
+import SetNewPassword from "./Pages/SetNewPassword/SetNewPassword";
 import BcsExam from "./Pages/BcsExam/BcsExam";
 import StudentDashboard from "./Pages/StudentDashboard/StudentDashboard";
 import StudentExamReview from "./Pages/StudentDashboard/StudentExamReview";
@@ -52,6 +55,18 @@ const router = createBrowserRouter([
       {
         path: "/register",
         element: <Register />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "/verify-code",
+        element: <VerifyCode />,
+      },
+      {
+        path: "/set-new-password",
+        element: <SetNewPassword />,
       },
       {
         path: "/bcs/all-questions",
