@@ -222,8 +222,8 @@ export const useWebcamCapture = () => {
           .detectAllFaces(
             videoRef.current,
             new window.faceapi.TinyFaceDetectorOptions({
-              inputSize: 320,
-              scoreThreshold: 0.5,
+              inputSize: 416, // Increased for better detection
+              scoreThreshold: 0.3, // Lower threshold for better detection
             })
           )
           .withFaceLandmarks();
